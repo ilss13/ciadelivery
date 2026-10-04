@@ -1,0 +1,100 @@
+@if (loading()) {
+<p>Carregando configuração…</p>
+} @else {
+<form class="stack" [formGroup]="form" (ngSubmit)="save()" novalidate>
+  <h1>Configurações</h1>
+  <p>Dados da loja, marca e horários. O cardápio usa estas cores.</p>
+
+  <section
+    class="preview"
+    [style.--brand-primary]="form.controls.primaryColor.value"
+    [style.--brand-secondary]="form.controls.secondaryColor.value"
+    [style.--brand-accent]="form.controls.accentColor.value"
+  >
+    <p class="preview-name">
+      {{ form.controls.displayName.value || 'Sua loja' }}
+    </p>
+    <p>Pré-visualização da marca</p>
+  </section>
+
+  <fieldset>
+    <legend>Loja</legend>
+    <label>Nome <input formControlName="name" /></label>
+    <label>Telefone <input formControlName="phone" inputmode="tel" /></label>
+    <label>Logradouro <input formControlName="line" /></label>
+    <label>Número <input formControlName="number" /></label>
+    <label>Bairro <input formControlName="district" /></label>
+    <label>Cidade <input formControlName="city" /></label>
+    <label>Estado <input formControlName="state" /></label>
+    <label>CEP <input formControlName="postalCode" /></label>
+    <label
+      >Pedido mínimo (R$)
+      <input formControlName="minimumOrder" inputmode="decimal"
+    /></label>
+    <label class="check">
+      <input type="checkbox" formControlName="isManuallyClosed" />
+      Fechar a loja manualmente
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Marca</legend>
+    <label>Nome exibido <input formControlName="displayName" /></label>
+    <label>Logo (URL) <input formControlName="logoUrl" /></label>
+    <label>Favicon (URL) <input formControlName="faviconUrl" /></label>
+    <label>Banner (URL) <input formControlName="bannerUrl" /></label>
+    <label
+      >Cor primária <input type="color" formControlName="primaryColor" />
+      <input formControlName="primaryColor"
+    /></label>
+    <label
+      >Cor secundária <input type="color" formControlName="secondaryColor" />
+      <input formControlName="secondaryColor"
+    /></label>
+    <label
+      >Cor de destaque <input type="color" formControlName="accentColor" />
+      <input formControlName="accentColor"
+    /></label>
+    <label>Fonte <input formControlName="fontFamily" /></label>
+    <label>Título da aba <input formControlName="seoTitle" /></label>
+    <label
+      >Descrição <textarea formControlName="seoDescription" rows="3"></textarea>
+    </label>
+    <label>Instagram <input formControlName="instagramUrl" /></label>
+    <label>Facebook <input formControlName="facebookUrl" /></label>
+    <label>Site <input formControlName="websiteUrl" /></label>
+    <label
+      >Email de contato <input type="email" formControlName="contactEmail"
+    /></label>
+    <label>WhatsApp <input formControlName="whatsappPhone" /></label>
+    <label
+      >Domínio próprio
+      <input formControlName="customDomain" placeholder="pedidos.sualoja.com"
+    /></label>
+  </fieldset>
+
+  <fieldset formArrayName="hours">
+    <legend>Horários</legend>
+    @for (group of form.controls.hours.controls; track
+    group.controls.weekday.value) {
+    <div class="day" [formGroupName]="$index">
+      <h2>{{ weekdays[$index] }}</h2>
+      <label class="check">
+        <input type="checkbox" formControlName="closed" />
+        Fechado
+      </label>
+      <label>Abre <input type="time" formControlName="opensAt" /></label>
+      <label>Fecha <input type="time" formControlName="closesAt" /></label>
+    </div>
+    }
+  </fieldset>
+
+  @if (notice()) {
+  <p [class.error]="noticeIsError()" role="status">{{ notice() }}</p>
+  }
+
+  <button type="submit" [disabled]="saving()">
+    {{ saving() ? 'Salvando…' : 'Salvar' }}
+  </button>
+</form>
+}

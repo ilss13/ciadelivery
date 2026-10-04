@@ -1,0 +1,19 @@
+{
+  "name": "@ciadelivery/shared",
+  "version": "0.0.1",
+  "private": true,
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/swagger": "^11.4.7",
+    "@nestjs/typeorm": "^11.0.3",
+    "class-validator": "^0.15.1",
+    "express": "^5.2.1",
+    "ioredis": "^5.11.1",
+    "mysql2": "^3.24.5",
+    "tslib": "^2.3.0",
+    "typeorm": "^0.3.31"
+  }
+}

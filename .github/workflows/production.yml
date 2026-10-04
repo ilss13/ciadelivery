@@ -1,0 +1,40 @@
+name: production
+
+# Manual only. Push does not deploy production.
+# Rollback: redeploy the previous image identified by its git sha tag
+# (ciadelivery-api:<sha>, ciadelivery-worker:<sha>, ciadelivery-landing:<sha>).
+# This workflow does not contact a server.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Image tag to redeploy. Use the previous commit sha to roll back.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Record the production image tag and rollback contract
+        env:
+          REQUESTED_SHA: ${{ inputs.sha }}
+        run: |
+          image_tag="${REQUESTED_SHA:-$GITHUB_SHA}"
+          {
+            echo "### Production"
+            echo
+            echo "No server was contacted. Cloud deploy is not implemented."
+            echo
+            echo "Image tag: \`${image_tag}\`"
+            echo
+            echo "Rollback: dispatch this workflow again with the previous image sha. That redeploys \`ciadelivery-api:<sha>\`, \`ciadelivery-worker:<sha>\` and \`ciadelivery-landing:<sha>\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "production deploy skipped: no cloud target is configured"
+          echo "rollback: redeploy the previous image identified by tag sha"
+          echo "image tag: ${image_tag}"

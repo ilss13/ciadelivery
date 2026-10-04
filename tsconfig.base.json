@@ -1,0 +1,33 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": ["es2020", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "paths": {
+      "@ciadelivery/auth": ["./libs/auth/src/index.ts"],
+      "@ciadelivery/leads": ["./libs/leads/src/index.ts"],
+      "@ciadelivery/branding": ["./libs/branding/src/index.ts"],
+      "@ciadelivery/shared": ["./libs/shared/src/index.ts"],
+      "@ciadelivery/users": ["./libs/users/src/index.ts"],
+      "@ciadelivery/stores": ["./libs/stores/src/index.ts"],
+      "@ciadelivery/tenancy": ["./libs/tenancy/src/index.ts"],
+      "@ciadelivery/tenancy/core": ["./libs/tenancy/src/core.ts"],
+      "@ciadelivery/tenancy/domain": ["./libs/tenancy/src/domain.ts"],
+      "@ciadelivery/tenancy/guards": ["./libs/tenancy/src/guards.ts"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

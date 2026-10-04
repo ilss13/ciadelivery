@@ -1,0 +1,19 @@
+<form class="stack" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <h2>Fale com a gente</h2>
+  <label>Nome <input formControlName="name" autocomplete="name" /></label>
+  <label
+    >Email <input type="email" formControlName="email" autocomplete="email"
+  /></label>
+  <label
+    >Telefone <input formControlName="phone" inputmode="tel" autocomplete="tel"
+  /></label>
+  <label>Estabelecimento <input formControlName="establishmentName" /></label>
+  @if (sent()) {
+  <p role="status">Recebemos seu interesse. Entraremos em contato.</p>
+  } @if (errorCode()) {
+  <p class="error" role="alert">{{ errorCode() }}</p>
+  }
+  <button type="submit" [disabled]="submitting()">
+    {{ submitting() ? 'Enviando…' : 'Quero conhecer' }}
+  </button>
+</form>

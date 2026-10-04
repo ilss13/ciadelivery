@@ -1,0 +1,47 @@
+:root {
+  --brand-primary: #1f2933;
+  --brand-secondary: #ffffff;
+  --brand-accent: #111111;
+  color: var(--brand-accent);
+  background: var(--brand-secondary);
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+.store,
+.unavailable,
+.status {
+  padding: 1rem;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+h1 {
+  color: var(--brand-primary);
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+.banner {
+  display: block;
+  width: 100%;
+  max-height: 12rem;
+  object-fit: cover;
+  border-radius: 0.75rem;
+}
+
+.closed {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--brand-accent);
+  color: var(--brand-secondary);
+  border-radius: 0.75rem;
+  font-weight: 700;
+}
+
+a {
+  color: var(--brand-primary);
+}

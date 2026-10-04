@@ -1,0 +1,36 @@
+@if (status() === 'loading') {
+<p class="status">Carregando a loja…</p>
+} @if (status() === 'missing') {
+<main class="unavailable">
+  <h1>Loja não encontrada</h1>
+  <p>Este endereço não corresponde a um estabelecimento.</p>
+</main>
+} @if (status() === 'suspended') {
+<main class="unavailable">
+  <h1>Loja indisponível</h1>
+  <p>Este estabelecimento não está aceitando acesso no momento.</p>
+</main>
+} @if (status() === 'error') {
+<main class="unavailable">
+  <h1>Não foi possível abrir a loja</h1>
+  <p>{{ errorCode() }}</p>
+</main>
+} @if (status() === 'ready' && store(); as current) {
+<main class="store">
+  @if (!current.isOpen) {
+  <p class="closed" role="status">Loja fechada</p>
+  } @if (current.branding.bannerUrl) {
+  <img
+    class="banner"
+    [src]="current.branding.bannerUrl"
+    [alt]="current.branding.displayName"
+  />
+  }
+  <h1>{{ current.branding.displayName }}</h1>
+  <p class="store-name">{{ current.name }}</p>
+  <p>
+    <a [href]="'tel:' + current.phone">{{ current.phone }}</a>
+  </p>
+  <p>{{ formatAddress(current.address) }}</p>
+</main>
+}

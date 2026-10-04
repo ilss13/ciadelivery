@@ -1,0 +1,25 @@
+import { Component, inject } from '@angular/core';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
+import { canConfigure } from '../../core/access';
+import { SessionService } from '../../core/session.service';
+
+@Component({
+  selector: 'admin-shell',
+  imports: [RouterLink, RouterOutlet],
+  templateUrl: './shell.html',
+})
+export class ShellPage {
+  private readonly session = inject(SessionService);
+  private readonly router = inject(Router);
+
+  readonly user = this.session.currentUser;
+
+  canConfigure(): boolean {
+    return canConfigure(this.user());
+  }
+
+  logout(): void {
+    this.session.logout();
+    void this.router.navigateByUrl('/login');
+  }
+}

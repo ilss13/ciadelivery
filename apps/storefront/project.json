@@ -1,0 +1,109 @@
+{
+  "name": "storefront",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "prefix": "storefront",
+  "sourceRoot": "apps/storefront/src",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@angular/build:application",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/apps/storefront",
+        "browser": "apps/storefront/src/main.ts",
+        "tsConfig": "apps/storefront/tsconfig.app.json",
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/storefront/public"
+          }
+        ],
+        "styles": ["apps/storefront/src/styles.css"]
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "500kb",
+              "maximumError": "1mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "4kb",
+              "maximumError": "8kb"
+            }
+          ],
+          "outputHashing": "all",
+          "fileReplacements": [
+            {
+              "replace": "apps/storefront/src/environments/environment.ts",
+              "with": "apps/storefront/src/environments/environment.production.ts"
+            }
+          ]
+        },
+        "local": {
+          "optimization": true,
+          "outputHashing": "all",
+          "extractLicenses": true,
+          "sourceMap": false
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true
+        }
+      }
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@angular/build:dev-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "port": 4201,
+        "allowedHosts": [
+          ".localhost",
+          "pizzariadoze.localhost",
+          "burgercentral.localhost"
+        ]
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "storefront:build:production"
+        },
+        "development": {
+          "buildTarget": "storefront:build:development"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p apps/storefront/tsconfig.app.json --pretty false"
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "apps/storefront/jest.config.cts",
+        "tsConfig": "apps/storefront/tsconfig.spec.json"
+      }
+    },
+    "serve-static": {
+      "continuous": true,
+      "executor": "@nx/web:file-server",
+      "options": {
+        "buildTarget": "storefront:build",
+        "port": 4201,
+        "staticFilePath": "dist/apps/storefront/browser",
+        "spa": true
+      }
+    }
+  }
+}

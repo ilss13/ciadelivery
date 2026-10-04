@@ -1,0 +1,12 @@
+<header class="bar">
+  <strong>Painel</strong>
+  @if (user(); as current) {
+  <span>{{ current.name }}</span>
+  } @if (canConfigure()) {
+  <a routerLink="/configuracoes">Configurações</a>
+  }
+  <button type="button" (click)="logout()">Sair</button>
+</header>
+<main class="stack">
+  <router-outlet></router-outlet>
+</main>
