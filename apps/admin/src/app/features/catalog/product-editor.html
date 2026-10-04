@@ -1,0 +1,168 @@
+<a routerLink="/cardapio" [queryParams]="categoryQuery()">Voltar ao cardápio</a>
+@if (loading()) {
+<p>Carregando produto…</p>
+} @else {
+<h1>{{ productId() ? 'Editar produto' : 'Novo produto' }}</h1>
+@if (error()) {
+<p class="error">{{ error() }}</p>
+}
+@if (notice()) {
+<p>{{ notice() }}</p>
+}
+
+<form class="stack" [formGroup]="form" (ngSubmit)="saveProduct()">
+  <label>
+    Categoria
+    <select formControlName="categoryId">
+      <option value="">Selecione</option>
+      @for (category of categories(); track category.id) {
+      <option [value]="category.id">{{ category.name }}</option>
+      }
+    </select>
+  </label>
+  <label>Nome <input formControlName="name" /></label>
+  <label>Descrição <textarea formControlName="description" rows="3"></textarea></label>
+  <label>
+    Preço (R$)
+    <input formControlName="price" inputmode="decimal" />
+  </label>
+  <label>SKU <input formControlName="sku" /></label>
+  @if (productId()) {
+  <label>
+    Foto
+    <input
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      [disabled]="uploadingImage()"
+      (change)="onImageSelected($event)"
+    />
+  </label>
+  @if (previewUrl()) {
+  <img class="image-preview" [src]="previewUrl()" alt="Foto do produto" />
+  <button
+    type="button"
+    class="secondary"
+    [disabled]="uploadingImage()"
+    (click)="removeImage()"
+  >
+    Remover foto
+  </button>
+  }
+  @if (imageError()) {
+  <p class="error">{{ imageError() }}</p>
+  }
+  } @else {
+  <p class="muted">Salve o produto para enviar a foto.</p>
+  }
+  <label class="check">
+    <input type="checkbox" formControlName="active" />
+    Visível no cardápio
+  </label>
+  <label class="check">
+    <input type="checkbox" formControlName="available" />
+    Disponível para pedido
+  </label>
+  <button type="submit" [disabled]="saving()">Salvar produto</button>
+</form>
+
+@if (productId()) {
+<section>
+  <h2>Grupos de opções</h2>
+  <p class="muted">
+    Marque “obrigatório escolher 1” para uma variação, como tamanho. Deixe
+    desmarcado para um adicional.
+  </p>
+  @if (groups().length === 0) {
+  <p>Nenhum grupo neste produto.</p>
+  }
+  <ul class="list">
+    @for (group of groups(); track group.id; let index = $index) {
+    <li class="item">
+      <strong>{{ group.name }}</strong>
+      <p class="muted">
+        @if (group.minSelect === 1 && group.maxSelect === 1) {
+        Obrigatório escolher 1
+        } @else {
+        Escolha de {{ group.minSelect }} a {{ group.maxSelect }}
+        }
+      </p>
+      <div class="actions">
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="index === 0"
+          (click)="moveGroup(index, -1)"
+        >
+          Subir
+        </button>
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="index === groups().length - 1"
+          (click)="moveGroup(index, 1)"
+        >
+          Descer
+        </button>
+        <button type="button" class="danger" (click)="removeGroup(group)">
+          Excluir grupo
+        </button>
+      </div>
+      @if (group.options.length === 0) {
+      <p>Nenhuma opção neste grupo.</p>
+      } @else {
+      <ul class="list">
+        @for (option of group.options; track option.id) {
+        <li>
+          {{ option.name }} — R$ {{ priceLabel(option.priceCents) }}
+          @if (!option.available) {
+          <span class="muted">indisponível</span>
+          }
+          <button type="button" class="secondary" (click)="removeOption(group.id, option)">
+            Excluir
+          </button>
+        </li>
+        }
+      </ul>
+      }
+      <form
+        class="stack"
+        (submit)="
+          $event.preventDefault();
+          addOption(group.id, optionName.value, optionPrice.value, optionAvailable.checked);
+          optionName.value = '';
+          optionPrice.value = '0,00'
+        "
+      >
+        <label>Opção <input #optionName name="optionName" /></label>
+        <label>
+          Acréscimo (R$)
+          <input #optionPrice name="optionPrice" value="0,00" inputmode="decimal" />
+        </label>
+        <label class="check">
+          <input #optionAvailable type="checkbox" checked />
+          Disponível
+        </label>
+        <button type="submit">Adicionar opção</button>
+      </form>
+    </li>
+    }
+  </ul>
+
+  <form class="stack" [formGroup]="groupForm" (ngSubmit)="addGroup()">
+    <h3>Novo grupo</h3>
+    <label>Nome <input formControlName="name" /></label>
+    <label class="check">
+      <input type="checkbox" formControlName="requiredOne" />
+      Obrigatório escolher 1
+    </label>
+    @if (!groupForm.controls.requiredOne.value) {
+    <label>Mínimo <input type="number" formControlName="minSelect" min="0" /></label>
+    <label>Máximo <input type="number" formControlName="maxSelect" min="1" /></label>
+    }
+    <button type="submit" [disabled]="saving()">Adicionar grupo</button>
+  </form>
+</section>
+} @else {
+<p>Salve o produto para cadastrar variações e adicionais.</p>
+}
+}

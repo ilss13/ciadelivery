@@ -47,6 +47,9 @@ Thumbs.db
 
 .angular
 
+# Uploads locais
+/storage
+
 # Playwright
 apps/storefront-e2e/test-results/
 apps/storefront-e2e/playwright-report/

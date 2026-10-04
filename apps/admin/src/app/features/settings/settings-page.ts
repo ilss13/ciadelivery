@@ -12,6 +12,11 @@ import { CanDeactivateFn } from '@angular/router';
 import { forkJoin, switchMap } from 'rxjs';
 import { readErrorCode } from '../../core/api-error';
 import { apiUrl } from '../../core/api-url';
+import {
+  imageFileMessage,
+  imageUploadError,
+  mediaUrl,
+} from '../../shared/image-file';
 import { centsToReais, reaisToCents } from './money';
 
 const WEEKDAYS = [
@@ -79,6 +84,11 @@ export class SettingsPage implements OnInit {
   readonly saving = signal(false);
   readonly notice = signal('');
   readonly noticeIsError = signal(false);
+  readonly logoUrl = signal<string | null>(null);
+  readonly faviconUrl = signal<string | null>(null);
+  readonly bannerUrl = signal<string | null>(null);
+  readonly imageError = signal('');
+  readonly uploadingImage = signal(false);
 
   readonly form = this.formBuilder.nonNullable.group({
     name: ['', Validators.required],
@@ -92,9 +102,6 @@ export class SettingsPage implements OnInit {
     minimumOrder: ['0,00', [Validators.required, minimumOrder]],
     isManuallyClosed: false,
     displayName: ['', Validators.required],
-    logoUrl: '',
-    faviconUrl: '',
-    bannerUrl: '',
     primaryColor: ['#111111', colorValidator],
     secondaryColor: ['#FFFFFF', colorValidator],
     accentColor: ['#111111', colorValidator],
@@ -187,9 +194,9 @@ export class SettingsPage implements OnInit {
         switchMap(() =>
           this.http.put(apiUrl('/api/v1/admin/branding'), {
             displayName: value.displayName.trim(),
-            logoUrl: emptyToNull(value.logoUrl),
-            faviconUrl: emptyToNull(value.faviconUrl),
-            bannerUrl: emptyToNull(value.bannerUrl),
+            logoUrl: this.logoUrl(),
+            faviconUrl: this.faviconUrl(),
+            bannerUrl: this.bannerUrl(),
             primaryColor: value.primaryColor.trim().toUpperCase(),
             secondaryColor: value.secondaryColor.trim().toUpperCase(),
             accentColor: value.accentColor.trim().toUpperCase(),
@@ -235,6 +242,67 @@ export class SettingsPage implements OnInit {
       });
   }
 
+  preview(url: string | null): string | null {
+    return mediaUrl(url);
+  }
+
+  onLogoSelected(event: Event): void {
+    this.uploadAsset('logo', event);
+  }
+
+  onFaviconSelected(event: Event): void {
+    this.uploadAsset('favicon', event);
+  }
+
+  onBannerSelected(event: Event): void {
+    this.uploadAsset('banner', event);
+  }
+
+  private uploadAsset(
+    kind: 'logo' | 'favicon' | 'banner',
+    event: Event,
+  ): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+    const file = input.files?.[0];
+    input.value = '';
+    if (file === undefined) {
+      return;
+    }
+    const message = imageFileMessage(file);
+    if (message !== null) {
+      this.imageError.set(message);
+      return;
+    }
+    this.imageError.set('');
+    this.uploadingImage.set(true);
+    const body = new FormData();
+    body.append('file', file);
+    this.http
+      .post<{ url: string }>(apiUrl(`/api/v1/admin/branding/${kind}`), body)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (stored) => {
+          this.uploadingImage.set(false);
+          if (kind === 'logo') {
+            this.logoUrl.set(stored.url);
+          } else if (kind === 'favicon') {
+            this.faviconUrl.set(stored.url);
+          } else {
+            this.bannerUrl.set(stored.url);
+          }
+          this.noticeIsError.set(false);
+          this.notice.set('Imagem enviada.');
+        },
+        error: (error: unknown) => {
+          this.uploadingImage.set(false);
+          this.imageError.set(imageUploadError(error));
+        },
+      });
+  }
+
   private applyLoaded(loaded: {
     store: StoreSettings;
     branding: BrandingSettings;
@@ -256,9 +324,6 @@ export class SettingsPage implements OnInit {
       minimumOrder: centsToReais(loaded.store.minimumOrderCents),
       isManuallyClosed: loaded.store.isManuallyClosed,
       displayName: loaded.branding.displayName,
-      logoUrl: loaded.branding.logoUrl ?? '',
-      faviconUrl: loaded.branding.faviconUrl ?? '',
-      bannerUrl: loaded.branding.bannerUrl ?? '',
       primaryColor: loaded.branding.primaryColor,
       secondaryColor: loaded.branding.secondaryColor,
       accentColor: loaded.branding.accentColor,
@@ -272,6 +337,9 @@ export class SettingsPage implements OnInit {
       whatsappPhone: loaded.branding.whatsappPhone ?? '',
       customDomain: loaded.domain.customDomain ?? '',
     });
+    this.logoUrl.set(loaded.branding.logoUrl);
+    this.faviconUrl.set(loaded.branding.faviconUrl);
+    this.bannerUrl.set(loaded.branding.bannerUrl);
     for (const group of this.form.controls.hours.controls) {
       const day = byWeekday.get(group.controls.weekday.value);
       if (day === undefined) {

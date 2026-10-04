@@ -18,6 +18,7 @@
     "exactOptionalPropertyTypes": true,
     "paths": {
       "@ciadelivery/auth": ["./libs/auth/src/index.ts"],
+      "@ciadelivery/catalog": ["./libs/catalog/src/index.ts"],
       "@ciadelivery/leads": ["./libs/leads/src/index.ts"],
       "@ciadelivery/branding": ["./libs/branding/src/index.ts"],
       "@ciadelivery/shared": ["./libs/shared/src/index.ts"],

@@ -1,6 +1,6 @@
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { isOriginAllowed, loadAppConfig, loadEnvFile } from './app-config';
 
 const validEnv = {
@@ -49,7 +49,36 @@ describe('loadAppConfig', () => {
       storeTimezone: 'America/Sao_Paulo',
       seedDemo: false,
       demoOwnerPassword: '',
+      storageDriver: 'local',
+      storageLocalDir: resolve('storage'),
+      storagePublicBaseUrl: 'http://localhost:3000',
+      s3Endpoint: '',
+      s3Bucket: '',
+      s3AccessKey: '',
+      s3SecretKey: '',
+      s3Region: '',
     });
+  });
+
+  it('keeps the local driver when S3 variables are absent', () => {
+    expect(loadAppConfig(validEnv).storageDriver).toBe('local');
+  });
+
+  it('requires the S3 settings only when that driver is selected', () => {
+    expect(() =>
+      loadAppConfig({ ...validEnv, STORAGE_DRIVER: 's3' }),
+    ).toThrow('S3_ENDPOINT');
+    expect(
+      loadAppConfig({
+        ...validEnv,
+        STORAGE_DRIVER: 's3',
+        S3_ENDPOINT: 'http://minio:9000',
+        S3_BUCKET: 'media',
+        S3_ACCESS_KEY: 'access',
+        S3_SECRET_KEY: 'secret',
+        S3_REGION: 'us-east-1',
+      }).storageDriver,
+    ).toBe('s3');
   });
 
   it('uses DATABASE_POOL_SIZE when it is set', () => {

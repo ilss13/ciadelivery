@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { isAbsolute, resolve } from 'node:path';
 
 export const NODE_ENVS = [
   'local',
@@ -32,6 +32,14 @@ export interface AppConfig {
   storeTimezone: string;
   seedDemo: boolean;
   demoOwnerPassword: string;
+  storageDriver: 'local' | 's3';
+  storageLocalDir: string;
+  storagePublicBaseUrl: string;
+  s3Endpoint: string;
+  s3Bucket: string;
+  s3AccessKey: string;
+  s3SecretKey: string;
+  s3Region: string;
 }
 
 export const APP_CONFIG = Symbol('APP_CONFIG');
@@ -237,6 +245,75 @@ export function loadAppConfig(env: Env = process.env): AppConfig {
     storeTimezone: parseStoreTimezone(env['STORE_TIMEZONE']),
     seedDemo,
     demoOwnerPassword,
+    ...storageConfig(env, apiPort),
+  };
+}
+
+function storageConfig(
+  env: Env,
+  apiPort: number,
+): Pick<
+  AppConfig,
+  | 'storageDriver'
+  | 'storageLocalDir'
+  | 'storagePublicBaseUrl'
+  | 's3Endpoint'
+  | 's3Bucket'
+  | 's3AccessKey'
+  | 's3SecretKey'
+  | 's3Region'
+> {
+  const driverValue = env['STORAGE_DRIVER']?.trim() ?? '';
+  const storageDriver = driverValue.length === 0 ? 'local' : driverValue;
+  if (storageDriver !== 'local' && storageDriver !== 's3') {
+    throw new Error('Invalid STORAGE_DRIVER: expected local or s3');
+  }
+
+  const localDirValue = env['STORAGE_LOCAL_DIR']?.trim() ?? '';
+  const storageLocalDir =
+    localDirValue.length === 0
+      ? resolve('storage')
+      : isAbsolute(localDirValue)
+        ? localDirValue
+        : resolve(localDirValue);
+
+  const publicBase = env['STORAGE_PUBLIC_BASE_URL']?.trim() ?? '';
+  const storagePublicBaseUrl =
+    publicBase.length === 0
+      ? `http://localhost:${apiPort}`
+      : publicBase.replace(/\/$/, '');
+
+  const s3Endpoint = env['S3_ENDPOINT']?.trim() ?? '';
+  const s3Bucket = env['S3_BUCKET']?.trim() ?? '';
+  const s3AccessKey = env['S3_ACCESS_KEY']?.trim() ?? '';
+  const s3SecretKey = env['S3_SECRET_KEY'] ?? '';
+  const s3Region = env['S3_REGION']?.trim() ?? '';
+  if (storageDriver === 's3') {
+    const missing = [
+      ['S3_ENDPOINT', s3Endpoint],
+      ['S3_BUCKET', s3Bucket],
+      ['S3_ACCESS_KEY', s3AccessKey],
+      ['S3_SECRET_KEY', s3SecretKey.trim()],
+      ['S3_REGION', s3Region],
+    ]
+      .filter(([, value]) => value.length === 0)
+      .map(([key]) => key);
+    if (missing.length > 0) {
+      throw new Error(
+        `Missing required environment variables: ${missing.join(', ')}`,
+      );
+    }
+  }
+
+  return {
+    storageDriver,
+    storageLocalDir,
+    storagePublicBaseUrl,
+    s3Endpoint,
+    s3Bucket,
+    s3AccessKey,
+    s3SecretKey,
+    s3Region,
   };
 }
 

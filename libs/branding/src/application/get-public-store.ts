@@ -1,4 +1,4 @@
-import { DomainException } from '@ciadelivery/shared';
+import { DomainException, StorageProvider } from '@ciadelivery/shared';
 import { currentTenant } from '@ciadelivery/tenancy/domain';
 import { CurrentStore, StoreAddress } from '@ciadelivery/stores';
 import { BrandingView, defaultBranding } from '../domain/branding';
@@ -6,6 +6,7 @@ import { BrandingRepository } from '../domain/branding-repository';
 import { BusinessDay, completeWeek } from '../domain/business-hours';
 import { BusinessHoursRepository } from '../domain/business-hours-repository';
 import { isStoreOpen } from '../domain/is-open';
+import { presentBranding } from './branding-settings';
 
 export interface PublicStoreProfile {
   id: string;
@@ -25,6 +26,7 @@ export class GetPublicStore {
     private readonly stores: CurrentStore,
     private readonly branding: BrandingRepository,
     private readonly hours: BusinessHoursRepository,
+    private readonly storage: StorageProvider,
     private readonly now: () => Date = () => new Date(),
   ) {}
 
@@ -58,7 +60,7 @@ export class GetPublicStore {
       minimumOrderCents: store.minimumOrderCents,
       isManuallyClosed: store.isManuallyClosed,
       slug: tenant.slug,
-      branding,
+      branding: presentBranding(branding, this.storage),
       hours,
       isOpen: isStoreOpen({
         now: this.now(),

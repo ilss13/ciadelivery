@@ -32,5 +32,11 @@
     <a [href]="'tel:' + current.phone">{{ current.phone }}</a>
   </p>
   <p>{{ formatAddress(current.address) }}</p>
+  <storefront-ordering
+    [host]="host()"
+    [slug]="current.slug"
+    [minimumOrderCents]="current.minimumOrderCents"
+    [storeOpen]="current.isOpen"
+  />
 </main>
 }

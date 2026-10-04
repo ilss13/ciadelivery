@@ -1,0 +1,136 @@
+@if (loading()) {
+<p>Carregando cardápio…</p>
+} @else {
+<h1>Cardápio</h1>
+@if (error()) {
+<p class="error">{{ error() }}</p>
+}
+@if (notice()) {
+<p>{{ notice() }}</p>
+}
+
+<section>
+  <h2>Categorias</h2>
+  @if (categories().length === 0) {
+  <p>Nenhuma categoria cadastrada.</p>
+  } @else {
+  <ul class="list">
+    @for (category of categories(); track category.id; let index = $index) {
+    <li class="item">
+      @if (editingId() === category.id) {
+      <form [formGroup]="editForm" (ngSubmit)="saveCategory(category.id)">
+        <label>Nome <input formControlName="name" /></label>
+        <label>Descrição <input formControlName="description" /></label>
+        <label class="check">
+          <input type="checkbox" formControlName="active" />
+          Visível no cardápio
+        </label>
+        <div class="actions">
+          <button type="submit" [disabled]="saving()">Salvar</button>
+          <button type="button" class="secondary" (click)="editingId.set(null)">
+            Cancelar
+          </button>
+        </div>
+      </form>
+      } @else {
+      <strong>{{ category.name }}</strong>
+      @if (category.description) {
+      <p class="muted">{{ category.description }}</p>
+      }
+      @if (!category.active) {
+      <p class="muted">Oculta do cardápio</p>
+      }
+      <div class="actions">
+        <button type="button" (click)="openCategory(category.id)">Produtos</button>
+        <button type="button" class="secondary" (click)="startEdit(category)">
+          Editar
+        </button>
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="index === 0"
+          (click)="moveCategory(index, -1)"
+        >
+          Subir
+        </button>
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="index === categories().length - 1"
+          (click)="moveCategory(index, 1)"
+        >
+          Descer
+        </button>
+        <button type="button" class="danger" (click)="removeCategory(category)">
+          Excluir
+        </button>
+      </div>
+      }
+    </li>
+    }
+  </ul>
+  }
+
+  <form class="stack" [formGroup]="createForm" (ngSubmit)="createCategory()">
+    <h3>Nova categoria</h3>
+    <label>Nome <input formControlName="name" /></label>
+    <label>Descrição <input formControlName="description" /></label>
+    <label class="check">
+      <input type="checkbox" formControlName="active" />
+      Visível no cardápio
+    </label>
+    <button type="submit" [disabled]="saving()">Cadastrar categoria</button>
+  </form>
+</section>
+
+@if (categoryId(); as selected) {
+<section>
+  <h2>Produtos @if (selectedCategory(); as category) { de {{ category.name }} }</h2>
+  @if (products()?.length === 0) {
+  <p>Nenhum produto nesta categoria.</p>
+  }
+  <ul class="list">
+    @for (product of products() ?? []; track product.id; let index = $index) {
+    <li class="item">
+      <strong>{{ product.name }}</strong>
+      <p class="muted">R$ {{ price(product.priceCents) }}</p>
+      @if (!product.active) {
+      <p class="muted">Oculto do cardápio</p>
+      } @else if (!product.available) {
+      <p class="muted">Indisponível</p>
+      }
+      <div class="actions">
+        <a [routerLink]="['/cardapio/produtos', product.id]">Editar</a>
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="index === 0"
+          (click)="moveProduct(index, -1)"
+        >
+          Subir
+        </button>
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="index === (products()?.length ?? 0) - 1"
+          (click)="moveProduct(index, 1)"
+        >
+          Descer
+        </button>
+        <button type="button" class="danger" (click)="removeProduct(product)">
+          Excluir
+        </button>
+      </div>
+    </li>
+    }
+  </ul>
+  <p>
+    <a
+      [routerLink]="['/cardapio/produtos/novo']"
+      [queryParams]="{ categoria: selected }"
+      >Novo produto</a
+    >
+  </p>
+</section>
+}
+}

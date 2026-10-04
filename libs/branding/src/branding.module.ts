@@ -1,5 +1,5 @@
-import { APP_CONFIG, AppConfig } from '@ciadelivery/shared';
-import { Module } from '@nestjs/common';
+import { APP_CONFIG, AppConfig, STORAGE, StorageProvider, WarningLog } from '@ciadelivery/shared';
+import { Logger, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CurrentStore, CURRENT_STORE, StoresModule } from '@ciadelivery/stores';
 import {
@@ -18,7 +18,11 @@ import {
   PermissionsGuard,
   UsersModule,
 } from '@ciadelivery/users';
-import { GetBranding, SaveBranding } from './application/branding-settings';
+import {
+  GetBranding,
+  SaveBranding,
+  UploadBrandingImage,
+} from './application/branding-settings';
 import {
   GetBusinessHours,
   ReplaceBusinessHours,
@@ -78,20 +82,42 @@ import { DemoTenantSeed } from './seed-demo-tenants';
         stores: CurrentStore,
         branding: BrandingRepository,
         hours: BusinessHoursRepository,
-      ) => new GetPublicStore(stores, branding, hours),
-      inject: [CURRENT_STORE, BRANDING, BUSINESS_HOURS],
+        storage: StorageProvider,
+      ) => new GetPublicStore(stores, branding, hours, storage),
+      inject: [CURRENT_STORE, BRANDING, BUSINESS_HOURS, STORAGE],
     },
     {
       provide: GetBranding,
-      useFactory: (stores: CurrentStore, branding: BrandingRepository) =>
-        new GetBranding(stores, branding),
-      inject: [CURRENT_STORE, BRANDING],
+      useFactory: (
+        stores: CurrentStore,
+        branding: BrandingRepository,
+        storage: StorageProvider,
+      ) => new GetBranding(stores, branding, storage),
+      inject: [CURRENT_STORE, BRANDING, STORAGE],
     },
     {
       provide: SaveBranding,
-      useFactory: (stores: CurrentStore, branding: BrandingRepository) =>
-        new SaveBranding(stores, branding),
-      inject: [CURRENT_STORE, BRANDING],
+      useFactory: (
+        stores: CurrentStore,
+        branding: BrandingRepository,
+        storage: StorageProvider,
+      ) => new SaveBranding(stores, branding, storage),
+      inject: [CURRENT_STORE, BRANDING, STORAGE],
+    },
+    {
+      provide: UploadBrandingImage,
+      useFactory: (
+        stores: CurrentStore,
+        branding: BrandingRepository,
+        storage: StorageProvider,
+      ) =>
+        new UploadBrandingImage(
+          stores,
+          branding,
+          storage,
+          brandingStorageWarnings(),
+        ),
+      inject: [CURRENT_STORE, BRANDING, STORAGE],
     },
     {
       provide: GetBusinessHours,
@@ -126,3 +152,12 @@ import { DemoTenantSeed } from './seed-demo-tenants';
   ],
 })
 export class BrandingModule {}
+
+function brandingStorageWarnings(): WarningLog {
+  const logger = new Logger('BrandingStorage');
+  return {
+    warn(message: string): void {
+      logger.warn(message);
+    },
+  };
+}

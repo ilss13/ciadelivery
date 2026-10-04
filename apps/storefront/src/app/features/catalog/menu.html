@@ -1,0 +1,45 @@
+@if (status() === 'loading') {
+<p class="status">Carregando o cardápio…</p>
+} @if (status() === 'error') {
+<p class="status" role="alert">Não foi possível carregar o cardápio.</p>
+<button type="button" (click)="load()">Tentar de novo</button>
+} @if (status() === 'empty') {
+<p class="status">O cardápio ainda não tem itens.</p>
+} @if (status() === 'ready') {
+<nav class="categories" aria-label="Categorias">
+  @for (anchor of anchors(); track anchor.id) {
+  <a [href]="'#categoria-' + anchor.id">{{ anchor.name }}</a>
+  }
+</nav>
+@for (section of sections(); track section.id) {
+<section [id]="'categoria-' + section.id">
+  <h2>{{ section.name }}</h2>
+  <ul class="products">
+    @for (product of section.products; track product.id) {
+    <li>
+      <button type="button" class="product" (click)="opened.set(product)">
+        @if (product.imageUrl) {
+        <img [src]="product.imageUrl" [alt]="product.name" />
+        }
+        <span class="product-copy">
+          <span class="product-name">{{ product.name }}</span>
+          @if (product.description) {
+          <span class="product-description">{{ product.description }}</span>
+          }
+          <span class="price">{{ format(product.priceCents) }}</span>
+          @if (!product.available) {
+          <span class="badge">Indisponível</span>
+          }
+        </span>
+      </button>
+    </li>
+    }
+  </ul>
+</section>
+} } @if (opened(); as product) {
+<div class="sheet-backdrop" (click)="opened.set(null)"></div>
+<section class="sheet" role="dialog" aria-modal="true" [attr.aria-label]="product.name">
+  <button type="button" class="sheet-close" (click)="opened.set(null)">Fechar</button>
+  <storefront-product-picker [product]="product" (added)="add($event)" />
+</section>
+}

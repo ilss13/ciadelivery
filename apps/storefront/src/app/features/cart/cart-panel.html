@@ -1,0 +1,57 @@
+<section class="cart" aria-label="Carrinho">
+  <h2>Carrinho</h2>
+  @if (lines().length === 0) {
+  <p>Seu carrinho está vazio.</p>
+  } @else {
+  <ul class="cart-lines">
+    @for (line of lines(); track line.lineId; let index = $index) {
+    <li>
+      <p class="product-name">{{ line.name }}</p>
+      @for (option of line.options; track option.id) {
+      <p class="option-name">{{ option.name }}</p>
+      }
+      @if (line.notes) {
+      <p class="notes">{{ line.notes }}</p>
+      }
+      <p class="price">{{ format(lineTotal(line.lineId)) }}</p>
+      <div class="qty">
+        <button type="button" (click)="setQuantity(line.lineId, line.quantity - 1)">
+          Diminuir
+        </button>
+        <span>{{ line.quantity }}</span>
+        <button type="button" (click)="setQuantity(line.lineId, line.quantity + 1)">
+          Aumentar
+        </button>
+        <button type="button" (click)="remove(line.lineId)">Remover</button>
+      </div>
+      @for (message of lineErrors(index); track message) {
+      <p class="line-error" role="alert">{{ message }}</p>
+      }
+    </li>
+    }
+  </ul>
+  }
+  <p class="subtotal">Subtotal {{ format(subtotalCents()) }}</p>
+  @if (minimumOrderCents() > 0) {
+  <p>Pedido mínimo {{ format(minimumOrderCents()) }}</p>
+  }
+  @if (quote() === null && lines().length > 0 && shortfallCents() > 0) {
+  <p class="shortfall">Faltam {{ format(shortfallCents()) }} para o pedido mínimo.</p>
+  }
+  @if (quote()?.valid) {
+  <p role="status">Carrinho válido para esta loja.</p>
+  }
+  @for (message of summaryErrors(); track message) {
+  <p class="line-error" role="alert">{{ message }}</p>
+  }
+  @if (networkError()) {
+  <p class="line-error" role="alert">Não foi possível validar o carrinho.</p>
+  <button type="button" (click)="validate()">Tentar de novo</button>
+  }
+  <button type="button" [disabled]="validating()" (click)="validate()">
+    {{ validating() ? 'Validando…' : 'Validar carrinho' }}
+  </button>
+  <button type="button" [disabled]="!canConfirm()" (click)="confirm()">
+    Confirmar carrinho
+  </button>
+</section>

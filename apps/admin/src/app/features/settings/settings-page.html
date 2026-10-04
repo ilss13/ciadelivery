@@ -14,6 +14,12 @@
     <p class="preview-name">
       {{ form.controls.displayName.value || 'Sua loja' }}
     </p>
+    @if (preview(logoUrl())) {
+    <img class="image-preview" [src]="preview(logoUrl())" alt="Logo" />
+    }
+    @if (preview(bannerUrl())) {
+    <img class="image-preview" [src]="preview(bannerUrl())" alt="Banner" />
+    }
     <p>Pré-visualização da marca</p>
   </section>
 
@@ -40,9 +46,45 @@
   <fieldset>
     <legend>Marca</legend>
     <label>Nome exibido <input formControlName="displayName" /></label>
-    <label>Logo (URL) <input formControlName="logoUrl" /></label>
-    <label>Favicon (URL) <input formControlName="faviconUrl" /></label>
-    <label>Banner (URL) <input formControlName="bannerUrl" /></label>
+    <label>
+      Logo
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        [disabled]="uploadingImage()"
+        (change)="onLogoSelected($event)"
+      />
+    </label>
+    @if (preview(logoUrl())) {
+    <img class="image-preview" [src]="preview(logoUrl())" alt="Logo da loja" />
+    }
+    <label>
+      Favicon
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        [disabled]="uploadingImage()"
+        (change)="onFaviconSelected($event)"
+      />
+    </label>
+    @if (preview(faviconUrl())) {
+    <img class="image-preview" [src]="preview(faviconUrl())" alt="Favicon" />
+    }
+    <label>
+      Banner
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        [disabled]="uploadingImage()"
+        (change)="onBannerSelected($event)"
+      />
+    </label>
+    @if (preview(bannerUrl())) {
+    <img class="image-preview" [src]="preview(bannerUrl())" alt="Banner da loja" />
+    }
+    @if (imageError()) {
+    <p class="error">{{ imageError() }}</p>
+    }
     <label
       >Cor primária <input type="color" formControlName="primaryColor" />
       <input formControlName="primaryColor"

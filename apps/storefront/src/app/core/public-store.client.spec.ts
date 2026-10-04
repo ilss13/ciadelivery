@@ -29,6 +29,8 @@ function store(primary: string): PublicStore {
       seoTitle: primary,
       seoDescription: '',
     },
+    slug: 'loja',
+    minimumOrderCents: 0,
     isOpen: true,
   };
 }

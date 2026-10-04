@@ -46,6 +46,15 @@ export function mapException(exception: unknown): MappedException {
     };
   }
 
+  if (isRejectedUpload(exception)) {
+    return {
+      statusCode: 400,
+      code: 'INVALID_FILE',
+      message: 'The file is not an accepted image',
+      details: null,
+    };
+  }
+
   if (exception instanceof NotFoundException) {
     return {
       statusCode: 404,
@@ -80,6 +89,18 @@ export function mapException(exception: unknown): MappedException {
     message: 'An unexpected error occurred',
     details: null,
   };
+}
+
+function isRejectedUpload(exception: unknown): boolean {
+  if (typeof exception !== 'object' || exception === null || !('code' in exception)) {
+    return false;
+  }
+
+  return (
+    exception.code === 'LIMIT_FILE_SIZE' ||
+    exception.code === 'LIMIT_FILE_COUNT' ||
+    exception.code === 'LIMIT_UNEXPECTED_FILE'
+  );
 }
 
 function readStatusCode(exception: unknown): number | undefined {

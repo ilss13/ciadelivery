@@ -9,11 +9,13 @@ import {
   PublicStoreClient,
   StoreAddress,
 } from '../../core/public-store.client';
+import { Ordering } from '../catalog/ordering';
 
 type StoreStatus = 'loading' | 'ready' | 'missing' | 'suspended' | 'error';
 
 @Component({
   selector: 'storefront-store-page',
+  imports: [Ordering],
   templateUrl: './store-page.html',
 })
 export class StorePage implements OnInit {
@@ -25,6 +27,7 @@ export class StorePage implements OnInit {
 
   readonly status = signal<StoreStatus>('loading');
   readonly store = signal<PublicStore | null>(null);
+  readonly host = signal('');
   readonly errorCode = signal('');
 
   ngOnInit(): void {
@@ -33,6 +36,7 @@ export class StorePage implements OnInit {
 
   load(host: string): void {
     clearBrandTheme(this.document.documentElement);
+    this.host.set(host);
     this.store.set(null);
     this.status.set('loading');
     this.client

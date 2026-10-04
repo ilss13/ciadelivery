@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { canConfigure, homePath } from '../../core/access';
+import { canConfigure, canManageCatalog, homePath } from '../../core/access';
 import { SessionService } from '../../core/session.service';
 
 @Component({
@@ -25,7 +25,11 @@ export class HomeRedirect {
     <h1>Início</h1>
     @if (canConfigure()) {
       <p><a routerLink="/configuracoes">Abrir configurações da loja</a></p>
-    } @else {
+    }
+    @if (canManageCatalog()) {
+      <p><a routerLink="/cardapio">Abrir cardápio</a></p>
+    }
+    @if (!canConfigure() && !canManageCatalog()) {
       <p>Você não tem acesso à configuração da loja.</p>
     }
   `,
@@ -35,5 +39,9 @@ export class HomePage {
 
   canConfigure(): boolean {
     return canConfigure(this.session.user());
+  }
+
+  canManageCatalog(): boolean {
+    return canManageCatalog(this.session.user());
   }
 }

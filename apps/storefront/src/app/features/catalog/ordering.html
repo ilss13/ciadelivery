@@ -1,0 +1,18 @@
+<div class="ordering">
+  <storefront-menu [host]="host()" [slug]="slug()" />
+  <div class="cart-column" [class.open]="cartOpen()">
+    <storefront-cart-panel
+      [host]="host()"
+      [slug]="slug()"
+      [minimumOrderCents]="minimumOrderCents()"
+      [storeOpen]="storeOpen()"
+    />
+  </div>
+  <button type="button" class="cart-toggle" (click)="cartOpen.set(!cartOpen())">
+    @if (cartOpen()) {
+    Ver cardápio
+    } @else {
+    Carrinho ({{ count() }}) · {{ format(subtotal()) }}
+    }
+  </button>
+</div>

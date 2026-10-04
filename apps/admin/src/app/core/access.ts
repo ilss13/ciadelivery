@@ -12,8 +12,20 @@ export function canConfigure(
   return user !== null && user.permissions.includes('store.configure');
 }
 
+export function canManageCatalog(
+  user: { permissions: readonly string[] } | null,
+): boolean {
+  return user !== null && user.permissions.includes('catalog.manage');
+}
+
 export function homePath(
   user: { permissions: readonly string[] } | null,
 ): string {
-  return canConfigure(user) ? '/configuracoes' : '/inicio';
+  if (canConfigure(user)) {
+    return '/configuracoes';
+  }
+  if (canManageCatalog(user)) {
+    return '/cardapio';
+  }
+  return '/inicio';
 }

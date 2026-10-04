@@ -4,6 +4,8 @@
   <span>{{ current.name }}</span>
   } @if (canConfigure()) {
   <a routerLink="/configuracoes">Configurações</a>
+  } @if (canManageCatalog()) {
+  <a routerLink="/cardapio">Cardápio</a>
   }
   <button type="button" (click)="logout()">Sair</button>
 </header>

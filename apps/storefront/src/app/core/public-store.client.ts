@@ -29,6 +29,8 @@ export interface PublicStore {
   phone: string;
   address: StoreAddress;
   branding: StoreBranding;
+  slug: string;
+  minimumOrderCents: number;
   isOpen: boolean;
 }
 
