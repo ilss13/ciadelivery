@@ -18,7 +18,7 @@ export interface PasswordResetToken {
 }
 
 export interface AuthSessions {
-  insertRefresh(token: SessionToken): Promise<void>;
+  insertRefresh(token: SessionToken, tx?: TransactionContext): Promise<void>;
   presentRefresh(
     presentedHash: string,
     issued: IssuedRefresh,
@@ -32,7 +32,10 @@ export interface AuthSessions {
     tx: TransactionContext,
   ): Promise<void>;
   countRecentFailures(email: string, since: Date): Promise<number>;
-  insertLoginAttempt(attempt: LoginAttempt): Promise<void>;
+  insertLoginAttempt(
+    attempt: LoginAttempt,
+    tx?: TransactionContext,
+  ): Promise<void>;
   insertPasswordReset(token: PasswordResetToken): Promise<void>;
   consumePasswordReset(
     tokenHash: string,

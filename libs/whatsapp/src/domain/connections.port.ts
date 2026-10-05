@@ -1,3 +1,5 @@
+import { TransactionContext } from '@ciadelivery/tenancy/domain';
+
 export const WHATSAPP_CONNECTION_STATUSES = [
   'PENDING',
   'CONNECTED',
@@ -35,7 +37,10 @@ export interface WhatsAppConnections {
   findConnectedForTenant(
     tenantId: string,
   ): Promise<WhatsAppConnectionRecord | null>;
-  save(connection: WhatsAppConnectionRecord): Promise<void>;
+  save(
+    connection: WhatsAppConnectionRecord,
+    tx?: TransactionContext,
+  ): Promise<void>;
 }
 
 export const WHATSAPP_CONNECTIONS = Symbol('WHATSAPP_CONNECTIONS');

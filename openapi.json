@@ -91,6 +91,22 @@
         ]
       }
     },
+    "/metrics": {
+      "get": {
+        "description": "Open when METRICS_TOKEN is unset. When set, requires Authorization: Bearer <METRICS_TOKEN>.",
+        "operationId": "MetricsController_scrape",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Prometheus metrics",
+        "tags": [
+          "metrics"
+        ]
+      }
+    },
     "/media/{path}": {
       "get": {
         "operationId": "MediaController_read",
@@ -301,6 +317,83 @@
         ],
         "tags": [
           "admin-store"
+        ]
+      }
+    },
+    "/api/v1/admin/audit-logs": {
+      "get": {
+        "operationId": "AdminAuditController_list",
+        "parameters": [
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPageResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-audit"
         ]
       }
     },
@@ -1798,6 +1891,68 @@
         ]
       }
     },
+    "/api/v1/admin/customers/{id}/export": {
+      "get": {
+        "operationId": "AdminCustomersController_exportCustomer",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerExportResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-customers"
+        ]
+      }
+    },
+    "/api/v1/admin/customers/{id}/anonymize": {
+      "post": {
+        "operationId": "AdminCustomersController_anonymize",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnonymizeCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-customers"
+        ]
+      }
+    },
     "/api/v1/admin/customers/{id}": {
       "get": {
         "operationId": "AdminCustomersController_get",
@@ -2999,6 +3154,267 @@
         ]
       }
     },
+    "/api/v1/admin/reports/overview": {
+      "get": {
+        "operationId": "AdminReportsController_overview",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-05",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportOverviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-reports"
+        ]
+      }
+    },
+    "/api/v1/admin/reports/products": {
+      "get": {
+        "operationId": "AdminReportsController_products",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-05",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductReportResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-reports"
+        ]
+      }
+    },
+    "/api/v1/admin/reports/customers": {
+      "get": {
+        "operationId": "AdminReportsController_customers",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-05",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerReportResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-reports"
+        ]
+      }
+    },
+    "/api/v1/admin/reports/couriers": {
+      "get": {
+        "operationId": "AdminReportsController_couriers",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-05",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CourierReportResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-reports"
+        ]
+      }
+    },
+    "/api/v1/admin/reports/orders.csv": {
+      "get": {
+        "operationId": "AdminReportsController_ordersCsv",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-05",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "CSV attachment of the period orders"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-reports"
+        ]
+      }
+    },
+    "/api/v1/admin/dashboard": {
+      "get": {
+        "operationId": "AdminDashboardController_snapshot",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-dashboard"
+        ]
+      }
+    },
     "/api/v1/admin/notifications": {
       "get": {
         "operationId": "AdminNotificationsController_list",
@@ -3868,6 +4284,103 @@
           "address",
           "minimumOrderCents",
           "isManuallyClosed"
+        ]
+      },
+      "AuditLogResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "actorId": {
+            "type": "object",
+            "nullable": true
+          },
+          "actorType": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "before": {
+            "type": "object",
+            "nullable": true
+          },
+          "changes": {
+            "type": "object",
+            "nullable": true
+          },
+          "ip": {
+            "type": "object",
+            "nullable": true
+          },
+          "userAgent": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "actorId",
+          "actorType",
+          "action",
+          "entityType",
+          "entityId",
+          "before",
+          "changes",
+          "ip",
+          "userAgent",
+          "createdAt"
+        ]
+      },
+      "AuditPageMeta": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ]
+      },
+      "AuditPageResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditLogResponse"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/AuditPageMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
         ]
       },
       "LoginDto": {
@@ -5243,6 +5756,192 @@
           "createdAt",
           "updatedAt",
           "addresses"
+        ]
+      },
+      "CustomerConsentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "OPERATIONAL",
+              "MARKETING"
+            ]
+          },
+          "granted": {
+            "type": "boolean"
+          },
+          "policyVersion": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "userAgent": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "purpose",
+          "granted",
+          "policyVersion",
+          "ip",
+          "userAgent",
+          "createdAt"
+        ]
+      },
+      "ExportedOrderItemResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitPriceCents": {
+            "type": "number"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "subtotalCents": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "productName",
+          "sku",
+          "unitPriceCents",
+          "quantity",
+          "notes",
+          "options",
+          "subtotalCents"
+        ]
+      },
+      "ExportedOrderResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orderNumber": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string"
+          },
+          "fulfillment": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerPhone": {
+            "type": "string"
+          },
+          "address": {
+            "type": "object",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalCents": {
+            "type": "number"
+          },
+          "deliveryFeeCents": {
+            "type": "number"
+          },
+          "totalCents": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportedOrderItemResponse"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "orderNumber",
+          "status",
+          "fulfillment",
+          "customerName",
+          "customerPhone",
+          "address",
+          "notes",
+          "subtotalCents",
+          "deliveryFeeCents",
+          "totalCents",
+          "createdAt",
+          "items"
+        ]
+      },
+      "CustomerExportResponse": {
+        "type": "object",
+        "properties": {
+          "customer": {
+            "$ref": "#/components/schemas/CustomerDetailResponse"
+          },
+          "consents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerConsentResponse"
+            }
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportedOrderResponse"
+            }
+          }
+        },
+        "required": [
+          "customer",
+          "consents",
+          "orders"
+        ]
+      },
+      "AnonymizeCustomerDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "example": "11988887777"
+          }
+        },
+        "required": [
+          "phone"
         ]
       },
       "PaymentMethodResponse": {
@@ -6921,6 +7620,178 @@
             "nullable": true
           }
         }
+      },
+      "StatusCountResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "count"
+        ]
+      },
+      "SourceCountResponse": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "source",
+          "count"
+        ]
+      },
+      "ReportOverviewResponse": {
+        "type": "object",
+        "properties": {
+          "orderCount": {
+            "type": "number"
+          },
+          "revenueCents": {
+            "type": "number"
+          },
+          "averageTicketCents": {
+            "type": "number"
+          },
+          "cancelledCount": {
+            "type": "number"
+          },
+          "byStatus": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusCountResponse"
+            }
+          },
+          "bySource": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceCountResponse"
+            }
+          }
+        },
+        "required": [
+          "orderCount",
+          "revenueCents",
+          "averageTicketCents",
+          "cancelledCount",
+          "byStatus",
+          "bySource"
+        ]
+      },
+      "ProductReportResponse": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "object",
+            "nullable": true
+          },
+          "productName": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "subtotalCents": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "productId",
+          "productName",
+          "quantity",
+          "subtotalCents"
+        ]
+      },
+      "CustomerReportResponse": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "maskedPhone": {
+            "type": "string"
+          },
+          "orderCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "customerId",
+          "name",
+          "maskedPhone",
+          "orderCount"
+        ]
+      },
+      "CourierReportResponse": {
+        "type": "object",
+        "properties": {
+          "courierId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "deliveredCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "courierId",
+          "name",
+          "deliveredCount"
+        ]
+      },
+      "DashboardResponse": {
+        "type": "object",
+        "properties": {
+          "newCount": {
+            "type": "number"
+          },
+          "inPreparationCount": {
+            "type": "number"
+          },
+          "readyCount": {
+            "type": "number"
+          },
+          "outForDeliveryCount": {
+            "type": "number"
+          },
+          "deliveredTodayCount": {
+            "type": "number"
+          },
+          "revenueCents": {
+            "type": "number"
+          },
+          "storeOpen": {
+            "type": "boolean"
+          },
+          "whatsappConnected": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "newCount",
+          "inPreparationCount",
+          "readyCount",
+          "outForDeliveryCount",
+          "deliveredTodayCount",
+          "revenueCents",
+          "storeOpen",
+          "whatsappConnected"
+        ]
       },
       "NotificationResponse": {
         "type": "object",

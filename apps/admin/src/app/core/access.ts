@@ -36,9 +36,39 @@ export function canManageCatalog(
   return user !== null && user.permissions.includes('catalog.manage');
 }
 
-export function homePath(
+export function canReadAudit(
   user: { permissions: readonly string[] } | null,
+): boolean {
+  return user !== null && user.permissions.includes('audit.read');
+}
+
+export function canReadReports(
+  user: { permissions: readonly string[] } | null,
+): boolean {
+  return user !== null && user.permissions.includes('reports.read');
+}
+
+export function canManageUsers(
+  user: { permissions: readonly string[] } | null,
+): boolean {
+  return user !== null && user.permissions.includes('users.manage');
+}
+
+export function isKitchen(
+  user: { role: string; permissions: readonly string[] } | null,
+): boolean {
+  return user?.role === 'KITCHEN';
+}
+
+export function homePath(
+  user: { role?: string; permissions: readonly string[] } | null,
 ): string {
+  if (user?.role === 'KITCHEN') {
+    return '/pedidos';
+  }
+  if (canReadOrders(user)) {
+    return '/';
+  }
   if (canConfigure(user)) {
     return '/configuracoes';
   }

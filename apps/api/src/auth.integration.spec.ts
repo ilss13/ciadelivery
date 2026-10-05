@@ -331,6 +331,25 @@ describe('authentication and tenant users', () => {
     expect(disabled.body.error.code).toBe('USER_DISABLED');
   });
 
+  it('refuses to disable the last owner', async () => {
+    const password = 'OwnerPassword1';
+    const owner = await createOwner('ultimo', 'Ursula', password);
+    const token = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: owner.email, password })
+      .expect(200);
+    const denied = await request(app.getHttpServer())
+      .patch(`/api/v1/admin/users/${owner.userId}`)
+      .set('Authorization', `Bearer ${token.body.accessToken as string}`)
+      .send({ status: 'DISABLED' })
+      .expect(409);
+    expect(denied.body.error.code).toBe('LAST_OWNER');
+    await request(app.getHttpServer())
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${token.body.accessToken as string}`)
+      .expect(200);
+  });
+
   it('rate limits login by IP', async () => {
     await clearLoginRateLimits();
     for (let attempt = 0; attempt < 10; attempt += 1) {

@@ -20,8 +20,11 @@ import { RefreshTokenEntity } from './refresh-token.entity';
 export class TypeOrmAuthSessions implements AuthSessions {
   constructor(private readonly database: DatabaseReady) {}
 
-  async insertRefresh(token: SessionToken): Promise<void> {
-    const manager = await this.manager();
+  async insertRefresh(
+    token: SessionToken,
+    tx?: TransactionContext,
+  ): Promise<void> {
+    const manager = tx === undefined ? await this.manager() : managerFrom(tx);
     await manager.insert(RefreshTokenEntity, token);
   }
 
@@ -93,8 +96,11 @@ export class TypeOrmAuthSessions implements AuthSessions {
       .getCount();
   }
 
-  async insertLoginAttempt(attempt: LoginAttempt): Promise<void> {
-    const manager = await this.manager();
+  async insertLoginAttempt(
+    attempt: LoginAttempt,
+    tx?: TransactionContext,
+  ): Promise<void> {
+    const manager = tx === undefined ? await this.manager() : managerFrom(tx);
     await manager.insert(LoginAttemptEntity, attempt);
   }
 

@@ -1,5 +1,7 @@
+import { AuditLogs, recordChanged } from '@ciadelivery/audit';
 import { RequestActor } from '@ciadelivery/users';
 import { CurrentStore } from '@ciadelivery/stores';
+import { UnitOfWork } from '@ciadelivery/tenancy/domain';
 import { BusinessDay, completeWeek } from '../domain/business-hours';
 import { BusinessHoursRepository } from '../domain/business-hours-repository';
 import { requireActorStore } from './actor-store';
@@ -20,13 +22,28 @@ export class ReplaceBusinessHours {
   constructor(
     private readonly stores: CurrentStore,
     private readonly hours: BusinessHoursRepository,
+    private readonly unitOfWork: UnitOfWork,
+    private readonly audit: AuditLogs,
   ) {}
 
   async execute(
     actor: RequestActor,
     days: readonly BusinessDay[],
   ): Promise<BusinessDay[]> {
-    await requireActorStore(actor, this.stores);
-    return this.hours.replace(days);
+    const store = await requireActorStore(actor, this.stores);
+    const current = await this.hours.listCurrent();
+    return this.unitOfWork.run(async (tx) => {
+      const saved = await this.hours.replace(days, tx);
+      await recordChanged(this.audit, tx, {
+        tenantId: store.tenantId,
+        actor,
+        action: 'business_hours.updated',
+        entityType: 'business_hours',
+        entityId: store.id,
+        before: { hours: current },
+        after: { hours: saved },
+      });
+      return saved;
+    });
   }
 }

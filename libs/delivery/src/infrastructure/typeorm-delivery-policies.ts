@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { DatabaseReady, DomainException } from '@ciadelivery/shared';
+import { TransactionContext } from '@ciadelivery/tenancy/domain';
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { assertDeliveryZones, DeliveryFeeZone } from '../domain/delivery-fee';
@@ -34,9 +35,9 @@ export class TypeOrmDeliveryPolicies implements DeliveryPolicies {
     patch: DeliveryConfigPatch;
     zones: DeliveryFeeZone[] | null;
     origin: DeliveryOrigin | null;
+    tx?: TransactionContext;
   }): Promise<DeliveryPolicySnapshot> {
-    const dataSource = await this.database.ensure();
-    return dataSource.transaction(async (manager) => {
+    return this.transact(input.tx, async (manager) => {
       const config = await this.lockConfig(
         manager,
         input.tenantId,
@@ -80,9 +81,9 @@ export class TypeOrmDeliveryPolicies implements DeliveryPolicies {
     tenantId: string,
     storeId: string,
     zones: DeliveryFeeZone[],
+    tx?: TransactionContext,
   ): Promise<DeliveryZoneRecord[]> {
-    const dataSource = await this.database.ensure();
-    return dataSource.transaction(async (manager) => {
+    return this.transact(tx, async (manager) => {
       const config = await this.lockConfig(manager, tenantId, storeId);
       await this.writeZones(
         manager,
@@ -99,9 +100,9 @@ export class TypeOrmDeliveryPolicies implements DeliveryPolicies {
     tenantId: string,
     storeId: string,
     zone: Omit<DeliveryFeeZone, 'sortOrder'>,
+    tx?: TransactionContext,
   ): Promise<DeliveryZoneRecord> {
-    const dataSource = await this.database.ensure();
-    return dataSource.transaction(async (manager) => {
+    return this.transact(tx, async (manager) => {
       const config = await this.lockConfig(manager, tenantId, storeId);
       const current = await this.zonesOf(manager, tenantId, storeId);
       const sortOrder =
@@ -130,9 +131,9 @@ export class TypeOrmDeliveryPolicies implements DeliveryPolicies {
     storeId: string,
     zoneId: string,
     patch: Partial<Omit<DeliveryFeeZone, 'sortOrder'>>,
+    tx?: TransactionContext,
   ): Promise<DeliveryZoneRecord> {
-    const dataSource = await this.database.ensure();
-    return dataSource.transaction(async (manager) => {
+    return this.transact(tx, async (manager) => {
       const config = await this.lockConfig(manager, tenantId, storeId);
       const current = await this.zonesOf(manager, tenantId, storeId);
       const target = current.find((zone) => zone.id === zoneId);
@@ -162,9 +163,9 @@ export class TypeOrmDeliveryPolicies implements DeliveryPolicies {
     tenantId: string,
     storeId: string,
     zoneId: string,
+    tx?: TransactionContext,
   ): Promise<void> {
-    const dataSource = await this.database.ensure();
-    await dataSource.transaction(async (manager) => {
+    await this.transact(tx, async (manager) => {
       await this.lockConfig(manager, tenantId, storeId);
       const result = await manager.delete(DeliveryZoneEntity, {
         id: zoneId,
@@ -175,6 +176,17 @@ export class TypeOrmDeliveryPolicies implements DeliveryPolicies {
         throw zoneNotFound();
       }
     });
+  }
+
+  private async transact<T>(
+    tx: TransactionContext | undefined,
+    work: (manager: EntityManager) => Promise<T>,
+  ): Promise<T> {
+    if (tx !== undefined) {
+      return work(tx as unknown as EntityManager);
+    }
+    const dataSource = await this.database.ensure();
+    return dataSource.transaction(work);
   }
 
   private async writeZones(

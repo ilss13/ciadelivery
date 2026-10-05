@@ -28,7 +28,10 @@ export type {
   Role,
   TenantRole,
 } from './domain/permissions';
+export { assertLastOwnerRemains } from './domain/last-owner';
 export { assertStrongPassword } from './domain/password-policy';
+export { USER_CHANGES } from './domain/user-changes';
+export type { UserChange, UserChanges } from './domain/user-changes';
 export { USERS } from './domain/users.port';
 export type { Users } from './domain/users.port';
 export { USER_STATUSES, normalizeEmail, toProfile } from './domain/user';

@@ -131,6 +131,7 @@ export class TypeOrmOrders implements OrderRepository {
       orderNumber: order.orderNumber,
       status: 'NEW',
       fulfillment: order.fulfillment,
+      source: 'STOREFRONT',
       paymentMethodCode: order.paymentMethodCode,
       paymentLabel: order.paymentLabel,
       paymentInstructions: order.paymentInstructions,

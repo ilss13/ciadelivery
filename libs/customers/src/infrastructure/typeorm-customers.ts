@@ -164,6 +164,75 @@ export class TypeOrmCustomers implements CustomerRepository {
       .map(toAddress);
   }
 
+  async listConsents(
+    scope: CustomerScope,
+    customerId: string,
+  ): Promise<CustomerConsentRecord[]> {
+    const manager = await this.manager();
+    const rows = await manager.find(CustomerConsentEntity, {
+      where: { tenantId: scope.tenantId, customerId },
+      order: { createdAt: 'ASC', id: 'ASC' },
+    });
+    return rows.map(toConsent);
+  }
+
+  async lockById(
+    scope: CustomerScope,
+    id: string,
+    tx: TransactionContext,
+  ): Promise<CustomerRecord | null> {
+    const row = await managerOf(tx)
+      .createQueryBuilder(CustomerEntity, 'customer')
+      .setLock('pessimistic_write')
+      .where('customer.id = :id', { id })
+      .andWhere('customer.tenant_id = :tenantId', { tenantId: scope.tenantId })
+      .andWhere('customer.store_id = :storeId', { storeId: scope.storeId })
+      .getOne();
+    return row === null ? null : toCustomer(row);
+  }
+
+  async applyAnonymized(
+    customer: CustomerRecord,
+    tx: TransactionContext,
+  ): Promise<void> {
+    await managerOf(tx).update(
+      CustomerEntity,
+      {
+        id: customer.id,
+        tenantId: customer.tenantId,
+        storeId: customer.storeId,
+      },
+      {
+        name: customer.name,
+        phone: customer.phone,
+        updatedAt: customer.updatedAt,
+      },
+    );
+  }
+
+  async reduceAddressesToCity(
+    scope: CustomerScope,
+    customerId: string,
+    tx: TransactionContext,
+  ): Promise<void> {
+    await managerOf(tx)
+      .createQueryBuilder()
+      .update(CustomerAddressEntity)
+      .set({
+        label: null,
+        line: '',
+        number: '',
+        complement: null,
+        district: '',
+        postalCode: '',
+        latitude: null,
+        longitude: null,
+      })
+      .where('tenant_id = :tenantId', { tenantId: scope.tenantId })
+      .andWhere('customer_id = :customerId', { customerId })
+      .execute();
+  }
+
   async listPaymentMethods(scope: CustomerScope): Promise<PaymentMethodRecord[]> {
     const manager = await this.manager();
     const rows = await manager.find(PaymentMethodEntity, {
@@ -306,6 +375,20 @@ function toAddressRow(address: CustomerAddressRecord): CustomerAddressEntity {
     latitude: address.latitude,
     longitude: address.longitude,
     createdAt: address.createdAt,
+  };
+}
+
+function toConsent(row: CustomerConsentEntity): CustomerConsentRecord {
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    customerId: row.customerId,
+    purpose: row.purpose,
+    granted: row.granted,
+    policyVersion: row.policyVersion,
+    ip: row.ip,
+    userAgent: row.userAgent,
+    createdAt: new Date(row.createdAt),
   };
 }
 

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { actorTypeOf, AuditLogs, recordAudit } from '@ciadelivery/audit';
 import { requireActorStore } from '@ciadelivery/customers';
 import {
   Assignments,
@@ -23,6 +24,7 @@ export class AdvanceDelivery {
     private readonly stores: CurrentStore,
     private readonly events: DomainEventPublisher,
     private readonly unitOfWork: UnitOfWork,
+    private readonly audit: AuditLogs,
   ) {}
 
   dispatch(actor: RequestActor, orderId: string): Promise<AdminOrderSummary> {
@@ -121,6 +123,16 @@ export class AdvanceDelivery {
           }),
           tx,
         );
+        await recordAudit(this.audit, tx, {
+          tenantId: store.tenantId,
+          actorId: actor.userId,
+          actorType: actorTypeOf(actor.role),
+          action: 'order.out_for_delivery',
+          entityType: 'order',
+          entityId: order.id,
+          before: { status: order.status },
+          changes: { status: 'OUT_FOR_DELIVERY' },
+        });
         return { ...order, status: 'OUT_FOR_DELIVERY' as const };
       }
 
@@ -167,6 +179,16 @@ export class AdvanceDelivery {
         }),
         tx,
       );
+      await recordAudit(this.audit, tx, {
+        tenantId: store.tenantId,
+        actorId: actor.userId,
+        actorType: actorTypeOf(actor.role),
+        action: 'order.delivered',
+        entityType: 'order',
+        entityId: order.id,
+        before: { status: order.status },
+        changes: { status: 'DELIVERED' },
+      });
       return { ...order, status: 'DELIVERED' as const };
     });
     this.logger.log(

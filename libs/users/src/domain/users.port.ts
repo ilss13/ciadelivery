@@ -35,6 +35,7 @@ export interface Users {
     userIds: readonly string[],
   ): Promise<Map<string, PermissionOverride[]>>;
   existsOwner(tenantId: string, tx: TransactionContext): Promise<boolean>;
+  countActiveOwners(tenantId: string, tx: TransactionContext): Promise<number>;
 }
 
 export const USERS = Symbol('USERS');

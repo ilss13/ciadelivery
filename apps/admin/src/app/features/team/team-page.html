@@ -1,0 +1,106 @@
+<h1>Equipe</h1>
+<p class="muted">
+  Nome, email, papel e acesso. A senha temporária aparece uma vez, logo depois
+  de criar a pessoa.
+</p>
+
+@if (revealedPassword()) {
+<section class="item" role="status">
+  <p>Senha temporária: <strong>{{ revealedPassword() }}</strong></p>
+  <p class="muted">Anote agora. Ela não será mostrada de novo.</p>
+  <button type="button" class="secondary" (click)="hidePassword()">
+    Entendi, ocultar senha
+  </button>
+</section>
+}
+
+<form class="stack" [formGroup]="form" (ngSubmit)="create()" novalidate>
+  <h2>Nova pessoa</h2>
+  <label>Nome <input formControlName="name" /></label>
+  <label>Email <input type="email" formControlName="email" /></label>
+  <label>
+    Papel
+    <select formControlName="role">
+      @for (role of roles; track role.value) {
+      <option [value]="role.value">{{ role.label }}</option>
+      }
+    </select>
+  </label>
+  <button type="submit" [disabled]="saving()">
+    {{ saving() ? 'Salvando…' : 'Criar com senha temporária' }}
+  </button>
+</form>
+
+@if (loading()) {
+<p>Carregando equipe…</p>
+} @else if (users().length === 0) {
+<p>Nenhuma pessoa nesta loja.</p>
+} @else {
+<ul class="list">
+  @for (user of users(); track user.id) {
+  <li class="item">
+    <strong>{{ user.name }}</strong>
+    <span>{{ user.email }}</span>
+    <span>{{ roleName(user.role) }} · {{ statusName(user.status) }}</span>
+    @if (editingId() === user.id) {
+    <form class="stack" [formGroup]="editForm" (ngSubmit)="saveEdit(user)">
+      <label>
+        Papel
+        <select
+          formControlName="role"
+          (change)="changeRole($any($event.target).value)"
+        >
+          @for (role of roles; track role.value) {
+          <option [value]="role.value">{{ role.label }}</option>
+          }
+        </select>
+      </label>
+      <fieldset>
+        <legend>Permissões</legend>
+        <p class="muted">
+          O marcado como padrão vem do papel. Desmarque para tirar ou marque
+          para conceder só a esta pessoa.
+        </p>
+        @for (permission of permissions; track permission.value) {
+        <label class="check">
+          <input
+            type="checkbox"
+            [checked]="permissionOn(permission.value)"
+            (change)="togglePermission(permission.value, $any($event.target).checked)"
+          />
+          {{ permission.label }}
+          @if (standard(permission.value)) {
+          <span class="muted">padrão do papel</span>
+          }
+        </label>
+        }
+      </fieldset>
+      <div class="actions">
+        <button type="submit" [disabled]="saving()">Salvar acesso</button>
+        <button type="button" class="secondary" (click)="cancelEdit()">
+          Cancelar
+        </button>
+      </div>
+    </form>
+    } @else {
+    <div class="actions">
+      <button type="button" class="secondary" (click)="startEdit(user)">
+        Editar acesso
+      </button>
+      @if (user.status === 'ACTIVE') {
+      <button type="button" class="danger" (click)="disable(user)">
+        Desabilitar
+      </button>
+      }
+    </div>
+    }
+  </li>
+  }
+</ul>
+}
+
+@if (notice()) {
+<p role="status">{{ notice() }}</p>
+} @if (error()) {
+<p class="error" role="alert">{{ error() }}</p>
+}

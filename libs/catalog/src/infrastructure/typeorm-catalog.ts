@@ -208,8 +208,11 @@ export class TypeOrmCatalog implements CatalogRepository {
     await manager.insert(ProductEntity, product);
   }
 
-  async updateProduct(product: ProductRecord): Promise<void> {
-    const manager = await this.manager();
+  async updateProduct(
+    product: ProductRecord,
+    tx?: TransactionContext,
+  ): Promise<void> {
+    const manager = tx === undefined ? await this.manager() : this.manager(tx);
     await manager.update(
       ProductEntity,
       { id: product.id, tenantId: product.tenantId, storeId: product.storeId },

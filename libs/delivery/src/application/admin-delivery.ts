@@ -1,11 +1,21 @@
 import {
+  actorTypeOf,
+  AuditLogs,
+  recordAudit,
+  recordChanged,
+} from '@ciadelivery/audit';
+import {
   AddressInput,
   DomainException,
   GeocodingProvider,
   JsonLogger,
 } from '@ciadelivery/shared';
 import { CurrentStore, StoreRecord } from '@ciadelivery/stores';
-import { currentTenant } from '@ciadelivery/tenancy/domain';
+import {
+  currentTenant,
+  TransactionContext,
+  UnitOfWork,
+} from '@ciadelivery/tenancy/domain';
 import { RequestActor } from '@ciadelivery/users';
 import { DeliveryFeeZone } from '../domain/delivery-fee';
 import {
@@ -34,6 +44,8 @@ export class AdminDelivery {
     private readonly policies: DeliveryPolicies,
     private readonly stores: CurrentStore,
     private readonly geocoding: GeocodingProvider,
+    private readonly unitOfWork: UnitOfWork,
+    private readonly audit: AuditLogs,
   ) {}
 
   async getConfig(actor: RequestActor): Promise<DeliveryConfigView> {
@@ -46,12 +58,40 @@ export class AdminDelivery {
     zones: DeliveryFeeZone[] | null,
   ): Promise<DeliveryConfigView> {
     const store = await this.requireStore(actor);
-    const snapshot = await this.policies.update({
-      tenantId: store.tenantId,
-      storeId: store.id,
-      patch,
-      zones,
-      origin: await this.ensureOrigin(store),
+    const origin = await this.ensureOrigin(store);
+    const previous = await this.policies.find(store.tenantId, store.id);
+    const snapshot = await this.unitOfWork.run(async (tx) => {
+      const updated = await this.policies.update({
+        tenantId: store.tenantId,
+        storeId: store.id,
+        patch,
+        zones,
+        origin,
+        tx,
+      });
+      if (previous !== null) {
+        await recordChanged(this.audit, tx, {
+          tenantId: store.tenantId,
+          actor,
+          action: 'delivery.updated',
+          entityType: 'delivery_config',
+          entityId: previous.config.id,
+          before: configAudit(previous.config),
+          after: configAudit(updated.config),
+        });
+        if (zones !== null) {
+          await recordChanged(this.audit, tx, {
+            tenantId: store.tenantId,
+            actor,
+            action: 'delivery.zones_updated',
+            entityType: 'delivery_config',
+            entityId: previous.config.id,
+            before: { zones: zonesAudit(previous.zones) },
+            after: { zones: zonesAudit(updated.zones) },
+          });
+        }
+      }
+      return updated;
     });
     this.logger.log(`Delivery config updated ${store.id}`);
     return toView(snapshot.config);
@@ -66,7 +106,27 @@ export class AdminDelivery {
     zones: DeliveryFeeZone[],
   ): Promise<DeliveryZoneRecord[]> {
     const store = await this.requireStore(actor);
-    const saved = await this.policies.replaceZones(store.tenantId, store.id, zones);
+    const previous = await this.policies.find(store.tenantId, store.id);
+    const saved = await this.unitOfWork.run(async (tx) => {
+      const next = await this.policies.replaceZones(
+        store.tenantId,
+        store.id,
+        zones,
+        tx,
+      );
+      if (previous !== null) {
+        await recordChanged(this.audit, tx, {
+          tenantId: store.tenantId,
+          actor,
+          action: 'delivery.zones_updated',
+          entityType: 'delivery_config',
+          entityId: previous.config.id,
+          before: { zones: zonesAudit(previous.zones) },
+          after: { zones: zonesAudit(next) },
+        });
+      }
+      return next;
+    });
     this.logger.log(`Delivery zones replaced ${store.id}`);
     return saved;
   }
@@ -76,7 +136,25 @@ export class AdminDelivery {
     zone: Omit<DeliveryFeeZone, 'sortOrder'>,
   ): Promise<DeliveryZoneRecord> {
     const store = await this.requireStore(actor);
-    return this.policies.addZone(store.tenantId, store.id, zone);
+    return this.unitOfWork.run(async (tx) => {
+      const created = await this.policies.addZone(
+        store.tenantId,
+        store.id,
+        zone,
+        tx,
+      );
+      await recordAudit(this.audit, tx, {
+        tenantId: store.tenantId,
+        actorId: actor.userId,
+        actorType: actorTypeOf(actor.role),
+        action: 'delivery.zone_added',
+        entityType: 'delivery_zone',
+        entityId: created.id,
+        before: null,
+        changes: zoneAudit(created),
+      });
+      return created;
+    });
   }
 
   async updateZone(
@@ -85,12 +163,59 @@ export class AdminDelivery {
     patch: Partial<Omit<DeliveryFeeZone, 'sortOrder'>>,
   ): Promise<DeliveryZoneRecord> {
     const store = await this.requireStore(actor);
-    return this.policies.updateZone(store.tenantId, store.id, zoneId, patch);
+    const previous = await this.policies.find(store.tenantId, store.id);
+    const current = previous?.zones.find((item) => item.id === zoneId) ?? null;
+    return this.unitOfWork.run(async (tx) => {
+      const saved = await this.policies.updateZone(
+        store.tenantId,
+        store.id,
+        zoneId,
+        patch,
+        tx,
+      );
+      if (current !== null) {
+        await recordChanged(this.audit, tx, {
+          tenantId: store.tenantId,
+          actor,
+          action: 'delivery.zone_updated',
+          entityType: 'delivery_zone',
+          entityId: saved.id,
+          before: zoneAudit(current),
+          after: zoneAudit(saved),
+        });
+      }
+      return saved;
+    });
   }
 
   async deleteZone(actor: RequestActor, zoneId: string): Promise<void> {
     const store = await this.requireStore(actor);
-    await this.policies.deleteZone(store.tenantId, store.id, zoneId);
+    const previous = await this.policies.find(store.tenantId, store.id);
+    const current = previous?.zones.find((item) => item.id === zoneId) ?? null;
+    await this.unitOfWork.run(async (tx) => {
+      await this.policies.deleteZone(store.tenantId, store.id, zoneId, tx);
+      if (current !== null) {
+        await this.noteZoneDeleted(actor, store, current, tx);
+      }
+    });
+  }
+
+  private async noteZoneDeleted(
+    actor: RequestActor,
+    store: StoreRecord,
+    zone: DeliveryZoneRecord,
+    tx: TransactionContext,
+  ): Promise<void> {
+    await recordAudit(this.audit, tx, {
+      tenantId: store.tenantId,
+      actorId: actor.userId,
+      actorType: actorTypeOf(actor.role),
+      action: 'delivery.zone_deleted',
+      entityType: 'delivery_zone',
+      entityId: zone.id,
+      before: zoneAudit(zone),
+      changes: { deleted: true },
+    });
   }
 
   private async ensureOrigin(
@@ -176,6 +301,31 @@ function originOf(store: StoreRecord): { latitude: number; longitude: number } |
   }
 
   return { latitude: store.latitude, longitude: store.longitude };
+}
+
+function configAudit(config: DeliveryConfigRecord): Record<string, unknown> {
+  return {
+    deliveryEnabled: config.deliveryEnabled,
+    pickupEnabled: config.pickupEnabled,
+    maxRadiusKm: config.maxRadiusKm,
+    feeMode: config.feeMode,
+    flatFeeCents: config.flatFeeCents,
+    estimatedMinutes: config.estimatedMinutes,
+  };
+}
+
+function zoneAudit(
+  zone: Pick<DeliveryZoneRecord, 'fromKm' | 'toKm' | 'feeCents'>,
+): Record<string, unknown> {
+  return {
+    fromKm: zone.fromKm,
+    toKm: zone.toKm,
+    feeCents: zone.feeCents,
+  };
+}
+
+function zonesAudit(zones: readonly DeliveryZoneRecord[]): Record<string, unknown>[] {
+  return zones.map(zoneAudit);
 }
 
 function toView(config: DeliveryConfigRecord): DeliveryConfigView {

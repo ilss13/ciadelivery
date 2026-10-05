@@ -48,6 +48,7 @@ export interface AppConfig {
   metaAppSecret: string;
   metaWebhookVerifyToken: string;
   whatsappAllowSessionMessages: boolean;
+  metricsToken: string | null;
 }
 
 export const APP_CONFIG = Symbol('APP_CONFIG');
@@ -256,7 +257,13 @@ export function loadAppConfig(env: Env = process.env): AppConfig {
     ...storageConfig(env, apiPort),
     ...geocodingConfig(env),
     ...whatsappConfig(env, nodeEnv),
+    metricsToken: metricsToken(env),
   };
+}
+
+function metricsToken(env: Env): string | null {
+  const token = env['METRICS_TOKEN']?.trim() ?? '';
+  return token.length === 0 ? null : token;
 }
 
 function storageConfig(

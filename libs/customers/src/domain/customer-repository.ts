@@ -45,6 +45,21 @@ export interface CustomerRepository {
     scope: CustomerScope,
     customerId: string,
   ): Promise<CustomerAddressRecord[]>;
+  listConsents(
+    scope: CustomerScope,
+    customerId: string,
+  ): Promise<CustomerConsentRecord[]>;
+  lockById(
+    scope: CustomerScope,
+    id: string,
+    tx: TransactionContext,
+  ): Promise<CustomerRecord | null>;
+  applyAnonymized(customer: CustomerRecord, tx: TransactionContext): Promise<void>;
+  reduceAddressesToCity(
+    scope: CustomerScope,
+    customerId: string,
+    tx: TransactionContext,
+  ): Promise<void>;
   listPaymentMethods(scope: CustomerScope): Promise<PaymentMethodRecord[]>;
   insertPaymentMethods(methods: readonly PaymentMethodRecord[]): Promise<void>;
   lockPaymentMethods(

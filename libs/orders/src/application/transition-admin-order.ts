@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { actorTypeOf, AuditLogs, recordAudit } from '@ciadelivery/audit';
 import { requireActorStore } from '@ciadelivery/customers';
 import { DomainException, JsonLogger } from '@ciadelivery/shared';
 import { CurrentStore } from '@ciadelivery/stores';
@@ -25,6 +26,7 @@ export class TransitionAdminOrder {
     private readonly stores: CurrentStore,
     private readonly events: DomainEventPublisher,
     private readonly unitOfWork: UnitOfWork,
+    private readonly audit: AuditLogs,
   ) {}
 
   async execute(
@@ -90,6 +92,16 @@ export class TransitionAdminOrder {
         }),
         tx,
       );
+      await recordAudit(this.audit, tx, {
+        tenantId: store.tenantId,
+        actorId: actor.userId,
+        actorType: actorTypeOf(actor.role),
+        action: spec.eventType,
+        entityType: 'order',
+        entityId: order.id,
+        before: { status: order.status },
+        changes: { status: spec.to },
+      });
       return {
         ...order,
         status: spec.to,

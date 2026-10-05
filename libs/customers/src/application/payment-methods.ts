@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { AuditLogs, recordChanged } from '@ciadelivery/audit';
 import { DomainException } from '@ciadelivery/shared';
 import { CurrentStore } from '@ciadelivery/stores';
 import { UnitOfWork } from '@ciadelivery/tenancy/domain';
@@ -19,6 +20,7 @@ export class PaymentMethods {
     private readonly customers: CustomerRepository,
     private readonly stores: CurrentStore,
     private readonly unitOfWork: UnitOfWork,
+    private readonly audit: AuditLogs,
   ) {}
 
   async list(actor: RequestActor): Promise<PaymentMethodView[]> {
@@ -50,6 +52,7 @@ export class PaymentMethods {
 
     const saved = await this.unitOfWork.run(async (tx) => {
       const current = await this.customers.lockPaymentMethods(scope, tx);
+      const before = current.map(paymentAudit);
       const byCode = new Map(current.map((method) => [method.code, method]));
       for (const update of updates) {
         const method = byCode.get(update.code);
@@ -74,6 +77,15 @@ export class PaymentMethods {
       }
       assertEnabledPaymentMethod(current);
       await this.customers.savePaymentMethods(current, tx);
+      await recordChanged(this.audit, tx, {
+        tenantId: scope.tenantId,
+        actor,
+        action: 'payment_methods.updated',
+        entityType: 'payment_methods',
+        entityId: store.id,
+        before: { methods: before },
+        after: { methods: current.map(paymentAudit) },
+      });
       return current;
     });
 
@@ -110,6 +122,15 @@ export class PaymentMethods {
       }
     }
   }
+}
+
+function paymentAudit(method: PaymentMethodRecord): Record<string, unknown> {
+  return {
+    code: method.code,
+    label: method.label,
+    instructions: method.instructions,
+    enabled: method.enabled,
+  };
 }
 
 function isMysqlDuplicate(error: unknown): boolean {

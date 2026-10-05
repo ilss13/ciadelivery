@@ -1,3 +1,4 @@
+import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
 import { Logger, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DatabaseReady, STORAGE, StorageProvider, WarningLog } from '@ciadelivery/shared';
@@ -32,6 +33,7 @@ import { DemoCatalogSeed } from './seed-demo-catalog';
 @Module({
   imports: [
     TenancyCoreModule,
+    AuditModule,
     StoresModule,
     TypeOrmModule.forFeature([
       CategoryEntity,
@@ -61,9 +63,17 @@ import { DemoCatalogSeed } from './seed-demo-catalog';
         stores: CurrentStore,
         unitOfWork: UnitOfWork,
         storage: StorageProvider,
+        audit: AuditLogs,
       ) =>
-        new AdminCatalog(catalog, stores, unitOfWork, storage, storageWarnings()),
-      inject: [CATALOG, CURRENT_STORE, UNIT_OF_WORK, STORAGE],
+        new AdminCatalog(
+          catalog,
+          stores,
+          unitOfWork,
+          storage,
+          storageWarnings(),
+          audit,
+        ),
+      inject: [CATALOG, CURRENT_STORE, UNIT_OF_WORK, STORAGE, AUDIT_LOGS],
     },
     {
       provide: PublicCatalog,

@@ -6,6 +6,7 @@
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
   "dependencies": {
+    "@ciadelivery/audit": "0.0.1",
     "@ciadelivery/catalog": "0.0.1",
     "@ciadelivery/customers": "0.0.1",
     "@ciadelivery/delivery": "0.0.1",

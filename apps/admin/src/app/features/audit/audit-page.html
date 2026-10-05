@@ -1,0 +1,75 @@
+<h1>Auditoria</h1>
+<p class="muted">Quem mudou o quê nesta loja. Horários em São Paulo.</p>
+
+<form class="stack audit" [formGroup]="form" (ngSubmit)="search()" novalidate>
+  <label>
+    Ação
+    <input formControlName="action" placeholder="order.cancelled" />
+  </label>
+  <label>
+    Entidade
+    <input formControlName="entityType" placeholder="order" />
+  </label>
+  <label>
+    De
+    <input formControlName="from" type="datetime-local" />
+  </label>
+  <label>
+    Até
+    <input formControlName="to" type="datetime-local" />
+  </label>
+  <button type="submit" [disabled]="loading()">
+    {{ loading() ? 'Carregando…' : 'Filtrar' }}
+  </button>
+</form>
+
+@if (error()) {
+<p class="error" role="status">{{ error() }}</p>
+}
+
+@if (loaded() && rows().length === 0 && !error()) {
+<p>Nenhuma ação sensível neste filtro.</p>
+}
+
+@if (rows().length > 0) {
+<div class="audit">
+  <table class="audit-table">
+    <thead>
+      <tr>
+        <th>Quando</th>
+        <th>Ação</th>
+        <th>Entidade</th>
+        <th>Autor</th>
+        <th>Alteração</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.id) {
+      <tr>
+        <td>{{ when(row.createdAt) }}</td>
+        <td>{{ actionLabel(row.action) }}</td>
+        <td>{{ row.entityType }}</td>
+        <td>{{ row.actorId ?? 'sistema' }}</td>
+        <td><pre class="audit-json">{{ changes(row.changes) }}</pre></td>
+      </tr>
+      }
+    </tbody>
+  </table>
+</div>
+}
+
+@if (totalPages() > 1) {
+<div class="actions">
+  <button type="button" (click)="previous()" [disabled]="loading() || page() <= 1">
+    Anterior
+  </button>
+  <span class="muted">Página {{ page() }} de {{ totalPages() }}</span>
+  <button
+    type="button"
+    (click)="next()"
+    [disabled]="loading() || page() >= totalPages()"
+  >
+    Próxima
+  </button>
+</div>
+}

@@ -27,6 +27,9 @@ export class OrderEntity {
   @Column({ type: 'varchar', length: 16 })
   fulfillment!: Fulfillment;
 
+  @Column({ type: 'varchar', length: 16, default: 'STOREFRONT' })
+  source!: 'STOREFRONT' | 'WHATSAPP';
+
   @Column({ name: 'payment_method_code', type: 'varchar', length: 32 })
   paymentMethodCode!: string;
 
@@ -39,7 +42,7 @@ export class OrderEntity {
   @Column({ name: 'customer_name', type: 'varchar', length: 160 })
   customerName!: string;
 
-  @Column({ name: 'customer_phone', type: 'varchar', length: 16 })
+  @Column({ name: 'customer_phone', type: 'varchar', length: 64 })
   customerPhone!: string;
 
   @Column({ name: 'address_snapshot', type: 'json', nullable: true })

@@ -1,5 +1,7 @@
 import { DatabaseReady } from '@ciadelivery/shared';
+import { TransactionContext } from '@ciadelivery/tenancy/domain';
 import { Injectable } from '@nestjs/common';
+import { EntityManager } from 'typeorm';
 import {
   WhatsAppConnectionRecord,
   WhatsAppConnections,
@@ -41,9 +43,15 @@ export class TypeOrmWhatsAppConnections implements WhatsAppConnections {
     return row === null ? null : toRecord(row);
   }
 
-  async save(connection: WhatsAppConnectionRecord): Promise<void> {
-    const source = await this.database.ensure();
-    await source.getRepository(WhatsAppConnectionEntity).save(toEntity(connection));
+  async save(
+    connection: WhatsAppConnectionRecord,
+    tx?: TransactionContext,
+  ): Promise<void> {
+    const manager =
+      tx === undefined
+        ? (await this.database.ensure()).manager
+        : (tx as unknown as EntityManager);
+    await manager.getRepository(WhatsAppConnectionEntity).save(toEntity(connection));
   }
 }
 

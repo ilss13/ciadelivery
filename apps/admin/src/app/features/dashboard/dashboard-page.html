@@ -1,0 +1,60 @@
+<h1>Hoje</h1>
+<p class="muted">
+  Movimento do dia no fuso da loja. Os pedidos em aberto são os que estão na
+  fila agora.
+</p>
+
+@if (loading()) {
+<p>Carregando o painel…</p>
+} @else if (error()) {
+<p class="error" role="alert">{{ error() }}</p>
+} @else if (snapshot(); as day) {
+<section class="metrics" aria-label="Resumo do dia">
+  <article class="metric">
+    <span>Novos agora</span>
+    <strong>{{ day.newCount }}</strong>
+  </article>
+  <article class="metric">
+    <span>Em preparo</span>
+    <strong>{{ day.inPreparationCount }}</strong>
+  </article>
+  <article class="metric">
+    <span>Prontos</span>
+    <strong>{{ day.readyCount }}</strong>
+  </article>
+  <article class="metric">
+    <span>Em rota</span>
+    <strong>{{ day.outForDeliveryCount }}</strong>
+  </article>
+  <article class="metric">
+    <span>Entregues hoje</span>
+    <strong>{{ day.deliveredTodayCount }}</strong>
+  </article>
+  <article class="metric">
+    <span>Faturamento do dia</span>
+    <strong>{{ reais(day.revenueCents) }}</strong>
+  </article>
+</section>
+<p>
+  Loja {{ day.storeOpen ? 'aberta' : 'fechada' }}. WhatsApp
+  {{ day.whatsappConnected ? 'conectado' : 'desconectado' }}.
+</p>
+}
+
+<nav class="shortcuts" aria-label="Atalhos">
+  @if (showOrders()) {
+  <a routerLink="/pedidos">Pedidos</a>
+  } @if (showCatalog()) {
+  <a routerLink="/cardapio">Cardápio</a>
+  } @if (showCustomers()) {
+  <a routerLink="/clientes">Clientes</a>
+  } @if (showReports()) {
+  <a routerLink="/relatorios">Relatórios</a>
+  } @if (showSettings()) {
+  <a routerLink="/configuracoes">Configurações</a>
+  } @if (showTeam()) {
+  <a routerLink="/equipe">Equipe</a>
+  } @if (showWhatsApp()) {
+  <a routerLink="/whatsapp">WhatsApp</a>
+  }
+</nav>

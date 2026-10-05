@@ -1,3 +1,4 @@
+import { AuditLogs, recordChanged } from '@ciadelivery/audit';
 import {
   discardStoredFile,
   FileInput,
@@ -9,6 +10,7 @@ import {
 } from '@ciadelivery/shared';
 import { RequestActor } from '@ciadelivery/users';
 import { CurrentStore } from '@ciadelivery/stores';
+import { UnitOfWork } from '@ciadelivery/tenancy/domain';
 import { BrandingView, defaultBranding } from '../domain/branding';
 import { BrandingRepository } from '../domain/branding-repository';
 import { requireActorStore } from './actor-store';
@@ -39,19 +41,35 @@ export class SaveBranding {
     private readonly stores: CurrentStore,
     private readonly branding: BrandingRepository,
     private readonly storage: StorageProvider,
+    private readonly unitOfWork: UnitOfWork,
+    private readonly audit: AuditLogs,
   ) {}
 
   async execute(
     actor: RequestActor,
     draft: BrandingView,
   ): Promise<BrandingView> {
-    await requireActorStore(actor, this.stores);
-    const current = await this.branding.findCurrent();
-    const saved = await this.branding.save({
+    const store = await requireActorStore(actor, this.stores);
+    const current =
+      (await this.branding.findCurrent()) ?? defaultBranding(store.name);
+    const nextDraft = {
       ...draft,
-      logoUrl: current?.logoUrl ?? null,
-      faviconUrl: current?.faviconUrl ?? null,
-      bannerUrl: current?.bannerUrl ?? null,
+      logoUrl: current.logoUrl,
+      faviconUrl: current.faviconUrl,
+      bannerUrl: current.bannerUrl,
+    };
+    const saved = await this.unitOfWork.run(async (tx) => {
+      const stored = await this.branding.save(nextDraft, tx);
+      await recordChanged(this.audit, tx, {
+        tenantId: store.tenantId,
+        actor,
+        action: 'branding.updated',
+        entityType: 'branding',
+        entityId: store.id,
+        before: { ...current },
+        after: { ...stored },
+      });
+      return stored;
     });
     return presentBranding(saved, this.storage);
   }

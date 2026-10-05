@@ -1,6 +1,16 @@
 import { randomBytes, randomUUID } from 'node:crypto';
+import {
+  actorTypeOf,
+  AuditLogs,
+  maskEmail,
+  recordAudit,
+} from '@ciadelivery/audit';
 import { DomainException } from '@ciadelivery/shared';
-import { TenantRepository, UnitOfWork } from '@ciadelivery/tenancy/domain';
+import {
+  TenantRepository,
+  TransactionContext,
+  UnitOfWork,
+} from '@ciadelivery/tenancy/domain';
 import {
   PasswordHasher,
   UserAccount,
@@ -37,6 +47,8 @@ export class Login {
     private readonly rateLimit: LoginRateLimit,
     private readonly tenants: TenantRepository,
     private readonly accessSecret: string,
+    private readonly unitOfWork: UnitOfWork,
+    private readonly audit: AuditLogs,
   ) {}
 
   async execute(command: LoginCommand): Promise<AuthenticatedSession> {
@@ -54,12 +66,18 @@ export class Login {
       user !== null &&
       (await this.hasher.verify(command.password, user.passwordHash));
     if (user === null || !passwordMatches) {
-      await this.sessions.insertLoginAttempt({
-        id: randomUUID(),
-        email,
-        ip: command.ip,
-        succeeded: false,
-        createdAt: now,
+      await this.unitOfWork.run(async (tx) => {
+        await this.sessions.insertLoginAttempt(
+          {
+            id: randomUUID(),
+            email,
+            ip: command.ip,
+            succeeded: false,
+            createdAt: now,
+          },
+          tx,
+        );
+        await this.writeLoginAudit(user, email, 'auth.login_failed', tx);
       });
       if (recentFailures + 1 >= LOGIN_LOCK_LIMIT) {
         throw loginLocked();
@@ -68,23 +86,57 @@ export class Login {
     }
 
     if (user.status === 'DISABLED') {
+      await this.unitOfWork.run((tx) =>
+        this.writeLoginAudit(user, email, 'auth.login_failed', tx),
+      );
       throw userDisabled();
     }
-    await assertTenantCanAuthenticate(this.tenants, user);
+    try {
+      await assertTenantCanAuthenticate(this.tenants, user);
+    } catch (error) {
+      await this.unitOfWork.run((tx) =>
+        this.writeLoginAudit(user, email, 'auth.login_failed', tx),
+      );
+      throw error;
+    }
 
-    await this.sessions.insertLoginAttempt({
-      id: randomUUID(),
-      email,
-      ip: command.ip,
-      succeeded: true,
-      createdAt: now,
-    });
     const refresh = issueRefresh(user.id, now);
-    await this.sessions.insertRefresh(refresh.record);
+    await this.unitOfWork.run(async (tx) => {
+      await this.sessions.insertLoginAttempt(
+        {
+          id: randomUUID(),
+          email,
+          ip: command.ip,
+          succeeded: true,
+          createdAt: now,
+        },
+        tx,
+      );
+      await this.sessions.insertRefresh(refresh.record, tx);
+      await this.writeLoginAudit(user, email, 'auth.login_succeeded', tx);
+    });
     return {
       accessToken: await accessTokenFor(this.users, user, this.accessSecret, now),
       refreshToken: refresh.secret,
     };
+  }
+
+  private writeLoginAudit(
+    user: UserAccount | null,
+    email: string,
+    action: 'auth.login_succeeded' | 'auth.login_failed',
+    tx: TransactionContext,
+  ): Promise<void> {
+    return recordAudit(this.audit, tx, {
+      tenantId: user?.tenantId ?? null,
+      actorId: user?.id ?? null,
+      actorType: user === null ? 'SYSTEM' : actorTypeOf(user.role),
+      action,
+      entityType: 'user',
+      entityId: user?.id ?? 'unknown',
+      before: null,
+      changes: { email: maskEmail(email) },
+    });
   }
 }
 

@@ -1,3 +1,4 @@
+import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '@ciadelivery/auth';
@@ -37,6 +38,7 @@ import { DemoCourierSeed } from './seed-demo-courier';
 @Module({
   imports: [
     TenancyCoreModule,
+    AuditModule,
     StoresModule,
     UsersModule,
     AuthModule,
@@ -63,8 +65,10 @@ import { DemoCourierSeed } from './seed-demo-courier';
         policies: DeliveryPolicies,
         stores: CurrentStore,
         geocoding: GeocodingProvider,
-      ) => new AdminDelivery(policies, stores, geocoding),
-      inject: [DELIVERY_POLICIES, CURRENT_STORE, GEOCODING],
+        unitOfWork: UnitOfWork,
+        audit: AuditLogs,
+      ) => new AdminDelivery(policies, stores, geocoding, unitOfWork, audit),
+      inject: [DELIVERY_POLICIES, CURRENT_STORE, GEOCODING, UNIT_OF_WORK, AUDIT_LOGS],
     },
     {
       provide: QuotePublicDelivery,

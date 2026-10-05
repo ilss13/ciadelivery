@@ -4,6 +4,7 @@ import {
   HttpExceptionFilter,
   JsonLogger,
   createValidationPipe,
+  httpMetricsMiddleware,
   requestIdMiddleware,
 } from '@ciadelivery/shared';
 import { AppModule } from './app/app.module';
@@ -15,6 +16,7 @@ export async function createWorkerApplication(): Promise<INestApplication> {
   app.useLogger(new JsonLogger());
   app.flushLogs();
   app.use(requestIdMiddleware);
+  app.use(httpMetricsMiddleware);
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalPipes(createValidationPipe());
   return app;

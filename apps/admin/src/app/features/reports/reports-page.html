@@ -1,0 +1,172 @@
+<h1>Relatórios</h1>
+<p class="muted">
+  Movimento do período no fuso da loja. O faturamento soma os pedidos que não
+  foram cancelados nem recusados.
+</p>
+
+<form class="reports" [formGroup]="form" (ngSubmit)="search()" novalidate>
+  <div class="report-shortcuts">
+    <button type="button" (click)="preset('today')" [disabled]="loading()">
+      Hoje
+    </button>
+    <button type="button" (click)="preset('7')" [disabled]="loading()">
+      7 dias
+    </button>
+    <button type="button" (click)="preset('30')" [disabled]="loading()">
+      30 dias
+    </button>
+  </div>
+  <label>
+    De
+    <input formControlName="from" type="date" />
+  </label>
+  <label>
+    Até
+    <input formControlName="to" type="date" />
+  </label>
+  <div class="actions">
+    <button type="submit" [disabled]="loading()">
+      {{ loading() ? 'Carregando…' : 'Filtrar' }}
+    </button>
+    <button type="button" (click)="exportCsv()" [disabled]="loading() || exporting()">
+      {{ exporting() ? 'Exportando…' : 'Exportar CSV' }}
+    </button>
+  </div>
+</form>
+
+@if (error()) {
+<p class="error" role="status">{{ error() }}</p>
+}
+
+@if (loading()) {
+<p role="status">Carregando…</p>
+}
+
+@if (loaded() && !loading() && !error() && overview()?.orderCount === 0) {
+<p>Sem pedidos no período.</p>
+}
+
+@if (loaded() && !loading() && !error() && (overview()?.orderCount ?? 0) > 0) {
+  @if (overview(); as summary) {
+  <section class="report-cards">
+    <article class="report-card">
+      <span>Pedidos</span>
+      <strong>{{ summary.orderCount }}</strong>
+    </article>
+    <article class="report-card">
+      <span>Faturamento</span>
+      <strong>{{ reais(summary.revenueCents) }}</strong>
+    </article>
+    <article class="report-card">
+      <span>Ticket médio</span>
+      <strong>{{ reais(summary.averageTicketCents) }}</strong>
+    </article>
+    <article class="report-card">
+      <span>Cancelados</span>
+      <strong>{{ summary.cancelledCount }}</strong>
+    </article>
+  </section>
+
+  <section>
+    <h2>Por status</h2>
+    <ul>
+      @for (row of summary.byStatus; track row.status) {
+      @if (row.count > 0) {
+      <li>{{ status(row.status) }}: {{ row.count }}</li>
+      }
+      }
+    </ul>
+  </section>
+
+  <section>
+    <h2>Origem</h2>
+    <ul>
+      @for (row of summary.bySource; track row.source) {
+      <li>{{ source(row.source) }}: {{ row.count }}</li>
+      }
+    </ul>
+  </section>
+  }
+
+  <section>
+    <h2>Produtos</h2>
+    @if (products().length === 0) {
+    <p>Nenhum produto vendido no período.</p>
+    } @else {
+    <div class="report-table-wrap">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Quantidade</th>
+            <th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of products(); track row.productId ?? row.productName) {
+          <tr>
+            <td>{{ row.productName }}</td>
+            <td>{{ row.quantity }}</td>
+            <td>{{ reais(row.subtotalCents) }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+  </section>
+
+  <section>
+    <h2>Clientes recorrentes</h2>
+    @if (customers().length === 0) {
+    <p>Nenhum cliente recorrente no período.</p>
+    } @else {
+    <div class="report-table-wrap">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Telefone</th>
+            <th>Pedidos</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of customers(); track row.customerId) {
+          <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.maskedPhone }}</td>
+            <td>{{ row.orderCount }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+  </section>
+
+  <section>
+    <h2>Entregas por entregador</h2>
+    @if (couriers().length === 0) {
+    <p>Nenhuma entrega concluída no período.</p>
+    } @else {
+    <div class="report-table-wrap">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Entregador</th>
+            <th>Entregas</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of couriers(); track row.courierId) {
+          <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.deliveredCount }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+  </section>
+}

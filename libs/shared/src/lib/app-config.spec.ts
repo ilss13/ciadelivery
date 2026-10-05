@@ -66,7 +66,15 @@ describe('loadAppConfig', () => {
       metaAppSecret: '',
       metaWebhookVerifyToken: '',
       whatsappAllowSessionMessages: false,
+      metricsToken: null,
     });
+  });
+
+  it('keeps metrics open when METRICS_TOKEN is absent and stores it when set', () => {
+    expect(loadAppConfig(validEnv).metricsToken).toBeNull();
+    expect(
+      loadAppConfig({ ...validEnv, METRICS_TOKEN: ' scrape-token ' }).metricsToken,
+    ).toBe('scrape-token');
   });
 
   it('keeps the local driver when S3 variables are absent', () => {

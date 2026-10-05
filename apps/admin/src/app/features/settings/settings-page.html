@@ -3,7 +3,10 @@
 } @else {
 <form class="stack" [formGroup]="form" (ngSubmit)="save()" novalidate>
   <h1>Configurações</h1>
-  <p>Dados da loja, marca e horários. O cardápio usa estas cores.</p>
+  <p class="muted">
+    Dados da loja, endereço, horários, marca, entrega, pagamentos e WhatsApp.
+    No celular, role a página: cada bloco salva junto, menos o WhatsApp.
+  </p>
 
   <section
     class="preview"
@@ -25,6 +28,10 @@
 
   <fieldset>
     <legend>Loja</legend>
+    <p class="muted">
+      Nome, telefone e endereço aparecem para o cliente. O pedido mínimo vale
+      no checkout.
+    </p>
     <label>Nome <input formControlName="name" /></label>
     <label>Telefone <input formControlName="phone" inputmode="tel" /></label>
     <label>Logradouro <input formControlName="line" /></label>
@@ -45,6 +52,10 @@
 
   <fieldset>
     <legend>Marca</legend>
+    <p class="muted">
+      Cores e imagens do cardápio. O domínio próprio é o endereço que o cliente
+      usa no lugar do subdomínio.
+    </p>
     <label>Nome exibido <input formControlName="displayName" /></label>
     <label>
       Logo
@@ -109,14 +120,25 @@
       >Email de contato <input type="email" formControlName="contactEmail"
     /></label>
     <label>WhatsApp <input formControlName="whatsappPhone" /></label>
-    <label
-      >Domínio próprio
-      <input formControlName="customDomain" placeholder="pedidos.sualoja.com"
-    /></label>
+    <label>
+      Domínio próprio
+      <input formControlName="customDomain" placeholder="pedidos.sualoja.com" />
+    </label>
+    <p class="muted">
+      Informe só o hostname, sem https. No DNS, aponte esse nome para o
+      endereço da plataforma. A loja passa a abrir por esse domínio.
+    </p>
+    @if (form.controls.customDomain.touched && form.controls.customDomain.invalid) {
+    <p class="error">Use um hostname válido, como pedidos.sualoja.com.</p>
+    }
   </fieldset>
 
   <fieldset formArrayName="hours">
     <legend>Horários</legend>
+    <p class="muted">
+      Fora deste horário a loja fecha sozinha. A caixa acima fecha na hora,
+      mesmo dentro do horário.
+    </p>
     @for (group of form.controls.hours.controls; track
     group.controls.weekday.value) {
     <div class="day" [formGroupName]="$index">

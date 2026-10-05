@@ -1,4 +1,5 @@
 import { DomainException } from '@ciadelivery/shared';
+import { RequestActor } from '@ciadelivery/users';
 import {
   Body,
   Controller,
@@ -6,6 +7,7 @@ import {
   Inject,
   Param,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
@@ -35,6 +37,7 @@ export class PlatformOwnerController {
   @HttpCode(201)
   @ApiOkResponse({ type: UserResponse })
   async create(
+    @Req() request: { actor?: RequestActor },
     @Param() params: UserIdParam,
     @Body() body: CreateOwnerDto,
   ): Promise<UserResponse> {
@@ -56,7 +59,16 @@ export class PlatformOwnerController {
       );
     }
 
+    const actor = request.actor;
+    if (actor === undefined) {
+      throw new DomainException(
+        'PLATFORM_UNAUTHORIZED',
+        'Platform authentication is required',
+        401,
+      );
+    }
     const owner = await this.createOwner.execute({
+      actor,
       tenantId: tenant.id,
       storeId: store.id,
       name: body.name,

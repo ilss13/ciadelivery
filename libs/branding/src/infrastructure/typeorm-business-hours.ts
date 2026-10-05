@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { DatabaseReady } from '@ciadelivery/shared';
 import { CURRENT_STORE, CurrentStore } from '@ciadelivery/stores';
+import { TransactionContext } from '@ciadelivery/tenancy/domain';
 import { Inject, Injectable } from '@nestjs/common';
+import { EntityManager } from 'typeorm';
 import {
   BusinessDay,
   assertBusinessHours,
@@ -27,11 +29,13 @@ export class TypeOrmBusinessHours implements BusinessHoursRepository {
     return rows.map(toDay);
   }
 
-  async replace(days: readonly BusinessDay[]): Promise<BusinessDay[]> {
+  async replace(
+    days: readonly BusinessDay[],
+    tx?: TransactionContext,
+  ): Promise<BusinessDay[]> {
     const normalized = assertBusinessHours(days);
     const store = await requireCurrentStore(this.stores);
-    const dataSource = await this.database.ensure();
-    await dataSource.transaction(async (manager) => {
+    const write = async (manager: EntityManager): Promise<void> => {
       await manager.delete(BusinessHourEntity, {
         tenantId: store.tenantId,
         storeId: store.id,
@@ -48,7 +52,13 @@ export class TypeOrmBusinessHours implements BusinessHoursRepository {
           closed: day.closed,
         })),
       );
-    });
+    };
+    if (tx !== undefined) {
+      await write(tx as unknown as EntityManager);
+      return normalized;
+    }
+    const dataSource = await this.database.ensure();
+    await dataSource.transaction(write);
     return normalized;
   }
 }

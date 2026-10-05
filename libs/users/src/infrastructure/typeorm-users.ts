@@ -153,6 +153,16 @@ export class TypeOrmUsers implements Users {
     return count > 0;
   }
 
+  async countActiveOwners(
+    tenantId: string,
+    tx: TransactionContext,
+  ): Promise<number> {
+    const manager = managerFrom(tx);
+    return manager.count(UserEntity, {
+      where: { tenantId, role: 'OWNER', status: 'ACTIVE' },
+    });
+  }
+
   private async manager(tx?: TransactionContext): Promise<EntityManager> {
     if (tx !== undefined) {
       return managerFrom(tx);

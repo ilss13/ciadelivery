@@ -124,7 +124,7 @@ export class SettingsPage implements OnInit {
     websiteUrl: '',
     contactEmail: ['', optionalEmail],
     whatsappPhone: '',
-    customDomain: '',
+    customDomain: ['', hostnameValidator],
     hours: this.formBuilder.array(
       WEEKDAYS.map((_, weekday) =>
         this.formBuilder.nonNullable.group({
@@ -177,7 +177,11 @@ export class SettingsPage implements OnInit {
     if (this.form.invalid || this.saving()) {
       this.form.markAllAsTouched();
       this.noticeIsError.set(true);
-      this.notice.set('Revise os campos antes de salvar.');
+      this.notice.set(
+        this.form.controls.customDomain.invalid
+          ? 'Informe só o hostname, como pedidos.sualoja.com.'
+          : 'Revise os campos antes de salvar.',
+      );
       return;
     }
 
@@ -189,6 +193,15 @@ export class SettingsPage implements OnInit {
     }
 
     const value = this.form.getRawValue();
+    if (
+      value.isManuallyClosed &&
+      this.form.controls.isManuallyClosed.dirty &&
+      !window.confirm(
+        'Fechar a loja agora? Os clientes deixam de fazer pedidos até você abrir de novo.',
+      )
+    ) {
+      return;
+    }
     this.saving.set(true);
     this.notice.set('');
     this.http
@@ -253,7 +266,12 @@ export class SettingsPage implements OnInit {
         error: (error: unknown) => {
           this.saving.set(false);
           this.noticeIsError.set(true);
-          this.notice.set(readErrorCode(error));
+          const code = readErrorCode(error);
+          this.notice.set(
+            code === 'TENANT_DOMAIN_INVALID'
+              ? 'Informe só o hostname, como pedidos.sualoja.com.'
+              : code,
+          );
         },
       });
   }
@@ -409,4 +427,26 @@ function minimumOrder(control: AbstractControl): ValidationErrors | null {
   return reaisToCents(String(control.value ?? '')) === null
     ? { minimumOrder: true }
     : null;
+}
+
+const HOST_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+function hostnameValidator(control: AbstractControl): ValidationErrors | null {
+  const value = String(control.value ?? '').trim().toLowerCase();
+  if (value.length === 0) {
+    return null;
+  }
+  if (
+    value.length > 255 ||
+    value.includes('://') ||
+    value.includes('/') ||
+    value.includes(' ')
+  ) {
+    return { hostname: true };
+  }
+  const labels = value.split('.');
+  if (labels.length < 2 || !labels.every((label) => HOST_LABEL.test(label))) {
+    return { hostname: true };
+  }
+  return null;
 }

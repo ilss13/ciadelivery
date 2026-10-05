@@ -29,9 +29,14 @@ export class AuthenticateGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<{
       headers: Record<string, string | string[] | undefined>;
+      path?: string;
+      url?: string;
       actor?: RequestActor;
       tenant?: Tenant;
     }>();
+    if (isMetricsPath(request.path ?? request.url)) {
+      return true;
+    }
     const header = readHeader(request.headers['authorization']);
     if (header === undefined) {
       return true;
@@ -86,6 +91,14 @@ export class AuthenticateGuard implements CanActivate {
     };
     return true;
   }
+}
+
+function isMetricsPath(path: string | undefined): boolean {
+  if (path === undefined) {
+    return false;
+  }
+  const pathname = path.split('?')[0] ?? path;
+  return pathname === '/metrics';
 }
 
 function readHeader(value: string | string[] | undefined): string | undefined {

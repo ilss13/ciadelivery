@@ -45,7 +45,7 @@ export interface CatalogRepository {
   findPublicProduct(scope: CatalogScope, id: string): Promise<ProductRecord | null>;
   nextProductSort(scope: CatalogScope, categoryId: string): Promise<number>;
   insertProduct(product: ProductRecord): Promise<void>;
-  updateProduct(product: ProductRecord): Promise<void>;
+  updateProduct(product: ProductRecord, tx?: TransactionContext): Promise<void>;
   deleteProduct(
     scope: CatalogScope,
     id: string,

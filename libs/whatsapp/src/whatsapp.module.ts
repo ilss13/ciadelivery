@@ -1,8 +1,13 @@
+import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_CONFIG, AppConfig } from '@ciadelivery/shared';
 import { CURRENT_STORE, CurrentStore, StoresModule } from '@ciadelivery/stores';
-import { TenancyCoreModule } from '@ciadelivery/tenancy';
+import {
+  TenancyCoreModule,
+  UNIT_OF_WORK,
+  UnitOfWork,
+} from '@ciadelivery/tenancy';
 import { PermissionsGuard, UsersModule } from '@ciadelivery/users';
 import { AdminConversations } from './application/admin-conversations';
 import { AdminWhatsApp } from './application/admin-whatsapp';
@@ -65,6 +70,7 @@ import { WhatsAppWebhookController } from './presentation/webhook-whatsapp.contr
 @Module({
   imports: [
     TenancyCoreModule,
+    AuditModule,
     StoresModule,
     UsersModule,
     TypeOrmModule.forFeature([
@@ -111,6 +117,8 @@ import { WhatsAppWebhookController } from './presentation/webhook-whatsapp.contr
         stores: CurrentStore,
         phoneCheck: WhatsAppPhoneCheck,
         config: AppConfig,
+        unitOfWork: UnitOfWork,
+        audit: AuditLogs,
       ) =>
         new AdminWhatsApp(
           connections,
@@ -119,6 +127,8 @@ import { WhatsAppWebhookController } from './presentation/webhook-whatsapp.contr
           stores,
           phoneCheck,
           config.credentialsEncryptionKey,
+          unitOfWork,
+          audit,
         ),
       inject: [
         WHATSAPP_CONNECTIONS,
@@ -127,6 +137,8 @@ import { WhatsAppWebhookController } from './presentation/webhook-whatsapp.contr
         CURRENT_STORE,
         WHATSAPP_PHONE_CHECK,
         APP_CONFIG,
+        UNIT_OF_WORK,
+        AUDIT_LOGS,
       ],
     },
     {

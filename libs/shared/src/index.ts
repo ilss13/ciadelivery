@@ -12,6 +12,16 @@ export * from './lib/logging/redact';
 export * from './lib/database/data-source-options';
 export * from './lib/database/database-ready';
 export * from './lib/platform.module';
+export {
+  bindMetricSink,
+  httpMetricsMiddleware,
+  httpRouteLabel,
+  metricsAuthorized,
+  observeCounter,
+  recordHttp,
+  renderPrometheus,
+} from './lib/metrics/prometheus';
+export type { MetricCounter, PrometheusSnapshot } from './lib/metrics/prometheus';
 export * from './lib/storage/image-file';
 export * from './lib/storage/memory-file-storage';
 export * from './lib/storage/local-storage';

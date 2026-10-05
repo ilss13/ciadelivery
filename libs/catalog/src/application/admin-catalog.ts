@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { AuditLogs, recordChanged } from '@ciadelivery/audit';
 import {
   discardStoredFile,
   DomainException,
@@ -104,6 +105,7 @@ export class AdminCatalog {
     private readonly unitOfWork: UnitOfWork,
     private readonly storage: StorageProvider,
     private readonly log: WarningLog,
+    private readonly audit: AuditLogs,
   ) {}
 
   async listCategories(
@@ -260,7 +262,18 @@ export class AdminCatalog {
       ...(patch.available === undefined ? {} : { available: patch.available }),
       ...(patch.sortOrder === undefined ? {} : { sortOrder: patch.sortOrder }),
     };
-    await this.catalog.updateProduct(next);
+    await this.unitOfWork.run(async (tx) => {
+      await this.catalog.updateProduct(next, tx);
+      await recordChanged(this.audit, tx, {
+        tenantId: scope.tenantId,
+        actor,
+        action: 'product.updated',
+        entityType: 'product',
+        entityId: next.id,
+        before: productAudit(current),
+        after: productAudit(next),
+      });
+    });
     const [detailed] = await this.withGroups(scope, [next]);
     if (detailed === undefined) {
       throw productNotFound();
@@ -528,6 +541,14 @@ export class AdminCatalog {
   }
 
   private readonly imageUrl = (key: string): string => this.storage.publicUrl(key);
+}
+
+function productAudit(product: ProductRecord): Record<string, unknown> {
+  return {
+    name: product.name,
+    priceCents: product.priceCents,
+    available: product.available,
+  };
 }
 
 function categoryNotFound(): DomainException {

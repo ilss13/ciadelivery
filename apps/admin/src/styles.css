@@ -186,6 +186,46 @@ button.danger {
   font-size: 0.875rem;
 }
 
+.metrics {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.metric {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: #fff;
+  border: 1px solid #e4ddd2;
+  border-radius: 0.75rem;
+}
+
+.metric strong {
+  font-size: 1.5rem;
+}
+
+.shortcuts {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.shortcuts a {
+  display: block;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  color: #17202a;
+  border: 1px solid #e4ddd2;
+  border-radius: 0.75rem;
+  text-decoration: none;
+}
+
+@media (min-width: 40rem) {
+  .metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .image-preview {
   display: block;
   max-width: 100%;
@@ -193,6 +233,86 @@ button.danger {
   object-fit: contain;
   border-radius: 0.5rem;
   background: #fff;
+}
+
+.stack:has(.audit) {
+  max-width: 72rem;
+}
+
+admin-audit-page {
+  min-width: 0;
+}
+
+div.audit {
+  overflow-x: auto;
+}
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 0.875rem;
+}
+
+.audit-table th,
+.audit-table td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid #e4ddd2;
+  vertical-align: top;
+}
+
+.audit-json {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 0.75rem;
+}
+
+.stack:has(.reports) {
+  max-width: 72rem;
+}
+
+.report-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.report-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.report-card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.report-card strong {
+  font-size: 1.25rem;
+}
+
+.report-table-wrap {
+  overflow-x: auto;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 0.875rem;
+}
+
+.report-table th,
+.report-table td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid #e4ddd2;
+  white-space: nowrap;
 }
 
 .stack:has(.order-board) {

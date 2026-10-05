@@ -3,9 +3,13 @@ import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import {
   canConfigure,
   canManageCatalog,
+  canManageUsers,
+  canReadAudit,
   canOperateWhatsApp,
   canReadCustomers,
   canReadOrders,
+  canReadReports,
+  isKitchen,
 } from '../../core/access';
 import { SessionService } from '../../core/session.service';
 
@@ -36,8 +40,24 @@ export class ShellPage {
     return canReadOrders(this.user());
   }
 
+  showDashboard(): boolean {
+    return canReadOrders(this.user()) && !isKitchen(this.user());
+  }
+
   canOperateWhatsApp(): boolean {
     return canOperateWhatsApp(this.user());
+  }
+
+  canReadAudit(): boolean {
+    return canReadAudit(this.user());
+  }
+
+  canReadReports(): boolean {
+    return canReadReports(this.user());
+  }
+
+  canManageUsers(): boolean {
+    return canManageUsers(this.user());
   }
 
   logout(): void {

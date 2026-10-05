@@ -6,6 +6,7 @@ import {
   HttpExceptionFilter,
   JsonLogger,
   createValidationPipe,
+  httpMetricsMiddleware,
   isOriginAllowed,
   requestIdMiddleware,
 } from '@ciadelivery/shared';
@@ -39,6 +40,7 @@ export async function createApiApplication(): Promise<INestApplication> {
     },
   });
   app.use(requestIdMiddleware);
+  app.use(httpMetricsMiddleware);
   app.use(whatsappRawBody);
   app.use(json({ limit: '1mb' }));
   app.use(urlencoded({ extended: true, limit: '1mb' }));

@@ -21,6 +21,8 @@ import {
   normalizeEmail,
   toProfile,
 } from '../domain/user';
+import { assertLastOwnerRemains } from '../domain/last-owner';
+import { UserChanges } from '../domain/user-changes';
 import { Users } from '../domain/users.port';
 
 export interface UserPage {
@@ -51,6 +53,7 @@ export interface UpdateTenantUserCommand {
 }
 
 export interface CreateTenantOwnerCommand {
+  actor: { userId: string; role: string };
   tenantId: string;
   storeId: string;
   name: string;
@@ -63,6 +66,7 @@ export class CreateTenantUser {
     private readonly users: Users,
     private readonly hasher: PasswordHasher,
     private readonly unitOfWork: UnitOfWork,
+    private readonly changes: UserChanges,
   ) {}
 
   async execute(command: CreateTenantUserCommand): Promise<UserProfile> {
@@ -83,7 +87,20 @@ export class CreateTenantUser {
       status: 'ACTIVE',
       now,
     });
-    await this.unitOfWork.run((tx) => this.users.insert(user, overrides, tx));
+    await this.unitOfWork.run(async (tx) => {
+      await this.users.insert(user, overrides, tx);
+      await this.changes.record(
+        {
+          tenantId: scope.tenantId,
+          actor: command.actor,
+          action: 'user.created',
+          userId: user.id,
+          before: null,
+          after: userAudit(user, overrides, false),
+        },
+        tx,
+      );
+    });
     return toProfile(user, effectivePermissions(role, overrides));
   }
 }
@@ -93,6 +110,7 @@ export class UpdateTenantUser {
     private readonly users: Users,
     private readonly hasher: PasswordHasher,
     private readonly unitOfWork: UnitOfWork,
+    private readonly changes: UserChanges,
   ) {}
 
   async execute(command: UpdateTenantUserCommand): Promise<UserProfile> {
@@ -124,13 +142,34 @@ export class UpdateTenantUser {
       passwordHash,
       updatedAt: now,
     };
-    await this.unitOfWork.run((tx) =>
-      this.users.update(
+    const passwordChanged = command.password !== undefined;
+    await this.unitOfWork.run(async (tx) => {
+      assertLastOwnerRemains({
+        currentRole: current.role,
+        currentStatus: current.status,
+        nextStatus: updated.status,
+        activeOwnerCount: await this.users.countActiveOwners(
+          scope.tenantId,
+          tx,
+        ),
+      });
+      await this.users.update(
         updated,
         command.permissionOverrides === undefined ? null : overrides,
         tx,
-      ),
-    );
+      );
+      await this.changes.record(
+        {
+          tenantId: scope.tenantId,
+          actor: command.actor,
+          action: 'user.updated',
+          userId: updated.id,
+          before: userAudit(current, existingOverrides, false),
+          after: userAudit(updated, overrides, passwordChanged),
+        },
+        tx,
+      );
+    });
     return toProfile(updated, effectivePermissions(role, overrides));
   }
 }
@@ -184,6 +223,7 @@ export class CreateTenantOwner {
     private readonly users: Users,
     private readonly hasher: PasswordHasher,
     private readonly unitOfWork: UnitOfWork,
+    private readonly changes: UserChanges,
   ) {}
 
   async execute(command: CreateTenantOwnerCommand): Promise<UserProfile> {
@@ -204,6 +244,17 @@ export class CreateTenantOwner {
         throw ownerAlreadyExists();
       }
       await this.users.insert(user, [], tx);
+      await this.changes.record(
+        {
+          tenantId: command.tenantId,
+          actor: command.actor,
+          action: 'user.created',
+          userId: user.id,
+          before: null,
+          after: userAudit(user, [], false),
+        },
+        tx,
+      );
     });
     return toProfile(user, effectivePermissions('OWNER', []));
   }
@@ -287,6 +338,24 @@ function assertOverrides(overrides: readonly PermissionOverride[]): void {
     }
     seen.add(override.permission);
   }
+}
+
+function userAudit(
+  user: UserAccount,
+  overrides: readonly PermissionOverride[],
+  passwordChanged: boolean,
+): Record<string, unknown> {
+  return {
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    status: user.status,
+    permissionOverrides: overrides.map((override) => ({
+      permission: override.permission,
+      granted: override.granted,
+    })),
+    hashUpdated: passwordChanged,
+  };
 }
 
 function userNotFound(): DomainException {

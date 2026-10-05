@@ -7,7 +7,7 @@ import {
   normalizeBrazilPhone,
 } from '@ciadelivery/customers';
 import { DeliveryPolicies } from '@ciadelivery/delivery';
-import { DomainException, JsonLogger } from '@ciadelivery/shared';
+import { DomainException, JsonLogger, observeCounter } from '@ciadelivery/shared';
 import { CurrentStore } from '@ciadelivery/stores';
 import { TransactionContext, UnitOfWork } from '@ciadelivery/tenancy/domain';
 import {
@@ -84,6 +84,7 @@ export class CreatePublicOrder {
     const requestHash = hashRequest({ ...input, customer: { name, phone } });
     const scope = { tenantId: store.tenantId, storeId: store.id };
 
+    let createdNew = false;
     const created = await this.withDeadlockRetry(() =>
       this.unitOfWork.run(async (tx) => {
       const claim = await this.orders.claimIdempotency(
@@ -294,10 +295,14 @@ export class CreatePublicOrder {
         response,
         tx,
       );
+      createdNew = true;
       return response;
       }),
     );
 
+    if (createdNew) {
+      observeCounter('orders_created');
+    }
     this.logger.log(`Order created ${created.orderId}`, 'CreatePublicOrder');
     return created;
   }

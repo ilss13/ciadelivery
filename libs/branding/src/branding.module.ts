@@ -1,3 +1,4 @@
+import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
 import { APP_CONFIG, AppConfig, STORAGE, StorageProvider, WarningLog } from '@ciadelivery/shared';
 import { Logger, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -48,6 +49,7 @@ import { DemoTenantSeed } from './seed-demo-tenants';
 @Module({
   imports: [
     TenancyCoreModule,
+    AuditModule,
     StoresModule,
     UsersModule,
     TypeOrmModule.forFeature([BrandingConfigEntity, BusinessHourEntity]),
@@ -101,8 +103,10 @@ import { DemoTenantSeed } from './seed-demo-tenants';
         stores: CurrentStore,
         branding: BrandingRepository,
         storage: StorageProvider,
-      ) => new SaveBranding(stores, branding, storage),
-      inject: [CURRENT_STORE, BRANDING, STORAGE],
+        unitOfWork: UnitOfWork,
+        audit: AuditLogs,
+      ) => new SaveBranding(stores, branding, storage, unitOfWork, audit),
+      inject: [CURRENT_STORE, BRANDING, STORAGE, UNIT_OF_WORK, AUDIT_LOGS],
     },
     {
       provide: UploadBrandingImage,
@@ -127,9 +131,13 @@ import { DemoTenantSeed } from './seed-demo-tenants';
     },
     {
       provide: ReplaceBusinessHours,
-      useFactory: (stores: CurrentStore, hours: BusinessHoursRepository) =>
-        new ReplaceBusinessHours(stores, hours),
-      inject: [CURRENT_STORE, BUSINESS_HOURS],
+      useFactory: (
+        stores: CurrentStore,
+        hours: BusinessHoursRepository,
+        unitOfWork: UnitOfWork,
+        audit: AuditLogs,
+      ) => new ReplaceBusinessHours(stores, hours, unitOfWork, audit),
+      inject: [CURRENT_STORE, BUSINESS_HOURS, UNIT_OF_WORK, AUDIT_LOGS],
     },
     {
       provide: UpdateTenant,

@@ -1,4 +1,4 @@
-import { JsonLogger } from '@ciadelivery/shared';
+import { JsonLogger, observeCounter } from '@ciadelivery/shared';
 import { outboxFailureDecision } from '../domain/outbox-backoff';
 import {
   OutboxHandler,
@@ -40,6 +40,10 @@ export class ProcessOutboxEvent {
         event.attempts,
         clipOutboxError(error),
         decision,
+      );
+      observeCounter(
+        decision.status === 'FAILED' ? 'jobs_failed' : 'jobs_retried',
+        'outbox-events',
       );
       this.logger.error(
         `Outbox handler failed ${event.id} ${event.type}`,

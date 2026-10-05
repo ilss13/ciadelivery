@@ -22,6 +22,7 @@ import {
   OutboundMessages,
 } from '../domain/outbound-messages.port';
 import { whatsAppSendLog, WhatsAppSendOutcome } from '../domain/send-log';
+import { recordWhatsAppMetric } from './whatsapp-metrics';
 import { TemplateNotApprovedError } from '../domain/template-approval';
 import { WhatsAppProvider } from '../domain/whatsapp-provider';
 
@@ -251,6 +252,7 @@ export class NotifyOrderStatus {
       }),
       'NotifyOrderStatus',
     );
+    recordWhatsAppMetric(outcome);
   }
 
   private async ensure(

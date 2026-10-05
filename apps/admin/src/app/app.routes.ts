@@ -1,23 +1,31 @@
 import { Route } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth.guard';
 import {
+  auditGuard,
   catalogGuard,
   configureGuard,
   customersGuard,
+  dashboardGuard,
   ordersGuard,
+  reportsGuard,
+  usersGuard,
   whatsappGuard,
 } from './core/settings.guard';
+import { DashboardPage } from './features/dashboard/dashboard-page';
 import { CustomersPage } from './features/customers/customers-page';
 import { OrdersPage } from './features/orders/orders-page';
 import { CatalogPage } from './features/catalog/catalog-page';
 import { ProductEditor } from './features/catalog/product-editor';
-import { HomePage, HomeRedirect } from './features/home/home-page';
+import { HomePage } from './features/home/home-page';
 import { LoginPage } from './features/login/login-page';
 import {
   discardSettingsGuard,
   SettingsPage,
 } from './features/settings/settings-page';
+import { TeamPage } from './features/team/team-page';
 import { ShellPage } from './features/shell/shell';
+import { AuditPage } from './features/audit/audit-page';
+import { ReportsPage } from './features/reports/reports-page';
 import { ConversationsPage } from './features/whatsapp/conversations-page';
 
 export const appRoutes: Route[] = [
@@ -63,12 +71,32 @@ export const appRoutes: Route[] = [
         canActivate: [ordersGuard],
       },
       {
+        path: 'relatorios',
+        component: ReportsPage,
+        canActivate: [reportsGuard],
+      },
+      {
+        path: 'auditoria',
+        component: AuditPage,
+        canActivate: [auditGuard],
+      },
+      {
         path: 'whatsapp',
         component: ConversationsPage,
         canActivate: [whatsappGuard],
       },
+      {
+        path: 'equipe',
+        component: TeamPage,
+        canActivate: [usersGuard],
+      },
       { path: 'inicio', component: HomePage },
-      { path: '', pathMatch: 'full', component: HomeRedirect },
+      {
+        path: '',
+        pathMatch: 'full',
+        component: DashboardPage,
+        canActivate: [dashboardGuard],
+      },
     ],
   },
 ];

@@ -1,3 +1,4 @@
+import { TransactionContext } from '@ciadelivery/tenancy/domain';
 import { DeliveryFeeMode, DeliveryFeeZone } from './delivery-fee';
 
 export interface DeliveryConfigRecord {
@@ -52,24 +53,33 @@ export interface DeliveryPolicies {
     patch: DeliveryConfigPatch;
     zones: DeliveryFeeZone[] | null;
     origin: DeliveryOrigin | null;
+    tx?: TransactionContext;
   }): Promise<DeliveryPolicySnapshot>;
   replaceZones(
     tenantId: string,
     storeId: string,
     zones: DeliveryFeeZone[],
+    tx?: TransactionContext,
   ): Promise<DeliveryZoneRecord[]>;
   addZone(
     tenantId: string,
     storeId: string,
     zone: Omit<DeliveryFeeZone, 'sortOrder'>,
+    tx?: TransactionContext,
   ): Promise<DeliveryZoneRecord>;
   updateZone(
     tenantId: string,
     storeId: string,
     zoneId: string,
     patch: Partial<Omit<DeliveryFeeZone, 'sortOrder'>>,
+    tx?: TransactionContext,
   ): Promise<DeliveryZoneRecord>;
-  deleteZone(tenantId: string, storeId: string, zoneId: string): Promise<void>;
+  deleteZone(
+    tenantId: string,
+    storeId: string,
+    zoneId: string,
+    tx?: TransactionContext,
+  ): Promise<void>;
 }
 
 export const DELIVERY_POLICIES = Symbol('DELIVERY_POLICIES');

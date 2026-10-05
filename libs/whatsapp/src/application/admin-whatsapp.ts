@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import { actorTypeOf, AuditLogs, recordAudit, recordChanged } from '@ciadelivery/audit';
 import { DomainException, JsonLogger } from '@ciadelivery/shared';
 import { CurrentStore } from '@ciadelivery/stores';
+import { UnitOfWork } from '@ciadelivery/tenancy/domain';
 import { RequestActor } from '@ciadelivery/users';
 import {
   credentialsHint,
@@ -78,6 +80,8 @@ export class AdminWhatsApp {
     private readonly stores: CurrentStore,
     private readonly phoneCheck: WhatsAppPhoneCheck,
     private readonly encryptionKey: string,
+    private readonly unitOfWork: UnitOfWork,
+    private readonly audit: AuditLogs,
   ) {}
 
   async getConnection(actor: RequestActor): Promise<WhatsAppConnectionView> {
@@ -135,7 +139,38 @@ export class AdminWhatsApp {
       createdAt: current?.createdAt ?? now,
       updatedAt: now,
     };
-    await this.connections.save(connection);
+    await this.unitOfWork.run(async (tx) => {
+      await this.connections.save(connection, tx);
+      const after = {
+        status: connection.status,
+        phoneNumberId: connection.phoneNumberId,
+      };
+      if (current === null) {
+        await recordAudit(this.audit, tx, {
+          tenantId: store.tenantId,
+          actorId: actor.userId,
+          actorType: actorTypeOf(actor.role),
+          action: 'whatsapp.connected',
+          entityType: 'whatsapp_connection',
+          entityId: connection.id,
+          before: null,
+          changes: after,
+        });
+        return;
+      }
+      await recordChanged(this.audit, tx, {
+        tenantId: store.tenantId,
+        actor,
+        action: 'whatsapp.connected',
+        entityType: 'whatsapp_connection',
+        entityId: connection.id,
+        before: {
+          status: current.status,
+          phoneNumberId: current.phoneNumberId,
+        },
+        after,
+      });
+    });
     await seedOrderTemplates(this.templates, store.tenantId);
     this.logger.log(
       `WhatsApp connected for store ${store.id}`,
@@ -237,12 +272,26 @@ export class AdminWhatsApp {
     }
 
     const now = new Date();
-    await this.connections.save({
-      ...current,
-      status: 'DISCONNECTED',
-      encryptedCredentials: null,
-      disconnectedAt: now,
-      updatedAt: now,
+    await this.unitOfWork.run(async (tx) => {
+      await this.connections.save(
+        {
+          ...current,
+          status: 'DISCONNECTED',
+          encryptedCredentials: null,
+          disconnectedAt: now,
+          updatedAt: now,
+        },
+        tx,
+      );
+      await recordChanged(this.audit, tx, {
+        tenantId: store.tenantId,
+        actor,
+        action: 'whatsapp.disconnected',
+        entityType: 'whatsapp_connection',
+        entityId: current.id,
+        before: { status: current.status, phoneNumberId: current.phoneNumberId },
+        after: { status: 'DISCONNECTED', phoneNumberId: current.phoneNumberId },
+      });
     });
     this.logger.log(
       `WhatsApp disconnected for store ${store.id}`,

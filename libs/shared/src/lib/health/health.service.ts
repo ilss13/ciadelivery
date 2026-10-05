@@ -13,14 +13,16 @@ export class HealthService {
   async readiness(): Promise<{
     status: 'ok' | 'unavailable';
     httpStatus: 200 | 503;
+    mysql: boolean;
+    redis: boolean;
   }> {
-    const databaseReady = await this.pingDatabase();
-    const redisReady = await this.pingRedis();
-    if (databaseReady && redisReady) {
-      return { status: 'ok', httpStatus: 200 };
+    const mysql = await this.pingDatabase();
+    const redis = await this.pingRedis();
+    if (mysql && redis) {
+      return { status: 'ok', httpStatus: 200, mysql, redis };
     }
 
-    return { status: 'unavailable', httpStatus: 503 };
+    return { status: 'unavailable', httpStatus: 503, mysql, redis };
   }
 
   private async pingDatabase(): Promise<boolean> {

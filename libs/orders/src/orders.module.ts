@@ -1,3 +1,4 @@
+import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CatalogModule, ValidatePublicCart } from '@ciadelivery/catalog';
@@ -56,6 +57,7 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
 @Module({
   imports: [
     TenancyCoreModule,
+    AuditModule,
     StoresModule,
     CatalogModule,
     CustomersModule,
@@ -169,8 +171,9 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
         stores: CurrentStore,
         events: DomainEventPublisher,
         unitOfWork: UnitOfWork,
-      ) => new TransitionAdminOrder(orders, stores, events, unitOfWork),
-      inject: [ORDERS, CURRENT_STORE, DOMAIN_EVENTS, UNIT_OF_WORK],
+        audit: AuditLogs,
+      ) => new TransitionAdminOrder(orders, stores, events, unitOfWork, audit),
+      inject: [ORDERS, CURRENT_STORE, DOMAIN_EVENTS, UNIT_OF_WORK, AUDIT_LOGS],
     },
     {
       provide: AssignCourier,
@@ -181,6 +184,7 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
         stores: CurrentStore,
         events: DomainEventPublisher,
         unitOfWork: UnitOfWork,
+        audit: AuditLogs,
       ) =>
         new AssignCourier(
           orders,
@@ -189,6 +193,7 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
           stores,
           events,
           unitOfWork,
+          audit,
         ),
       inject: [
         ORDERS,
@@ -197,6 +202,7 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
         CURRENT_STORE,
         DOMAIN_EVENTS,
         UNIT_OF_WORK,
+        AUDIT_LOGS,
       ],
     },
     {
@@ -207,8 +213,17 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
         stores: CurrentStore,
         events: DomainEventPublisher,
         unitOfWork: UnitOfWork,
-      ) => new AdvanceDelivery(orders, assignments, stores, events, unitOfWork),
-      inject: [ORDERS, ASSIGNMENTS, CURRENT_STORE, DOMAIN_EVENTS, UNIT_OF_WORK],
+        audit: AuditLogs,
+      ) =>
+        new AdvanceDelivery(orders, assignments, stores, events, unitOfWork, audit),
+      inject: [
+        ORDERS,
+        ASSIGNMENTS,
+        CURRENT_STORE,
+        DOMAIN_EVENTS,
+        UNIT_OF_WORK,
+        AUDIT_LOGS,
+      ],
     },
     {
       provide: CourierOrders,

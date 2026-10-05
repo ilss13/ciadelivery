@@ -1,3 +1,4 @@
+import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
 import { APP_CONFIG, AppConfig } from '@ciadelivery/shared';
 import { StoresModule } from '@ciadelivery/stores';
 import {
@@ -11,7 +12,9 @@ import {
 import {
   PASSWORD_HASHER,
   PasswordHasher,
+  USER_CHANGES,
   USERS,
+  UserChanges,
   Users,
   UsersModule,
   CreateTenantOwner,
@@ -42,6 +45,7 @@ import { LoggingMailProvider } from './infrastructure/logging-mail-provider';
 import { PasswordResetTokenEntity } from './infrastructure/password-reset.entity';
 import { RedisLoginRateLimit } from './infrastructure/redis-login-rate-limit';
 import { RefreshTokenEntity } from './infrastructure/refresh-token.entity';
+import { AuditUserChanges } from './infrastructure/audit-user-changes';
 import { TypeOrmAuthSessions } from './infrastructure/typeorm-auth-sessions';
 import { AdminAccessLogInterceptor } from './presentation/admin-access-log.interceptor';
 import { AdminUsersController } from './presentation/admin-users.controller';
@@ -54,6 +58,7 @@ import { PlatformAdminSeed } from './seed-platform-admin';
 @Module({
   imports: [
     UsersModule,
+    AuditModule,
     TenancyCoreModule,
     StoresModule,
     TypeOrmModule.forFeature([
@@ -80,6 +85,11 @@ import { PlatformAdminSeed } from './seed-platform-admin';
     PermissionsGuard,
     PlatformAdminSeed,
     {
+      provide: USER_CHANGES,
+      useFactory: (audit: AuditLogs) => new AuditUserChanges(audit),
+      inject: [AUDIT_LOGS],
+    },
+    {
       provide: Login,
       useFactory: (
         users: Users,
@@ -88,6 +98,8 @@ import { PlatformAdminSeed } from './seed-platform-admin';
         rateLimit: LoginRateLimit,
         tenants: TenantRepository,
         config: AppConfig,
+        unitOfWork: UnitOfWork,
+        audit: AuditLogs,
       ) =>
         new Login(
           users,
@@ -96,6 +108,8 @@ import { PlatformAdminSeed } from './seed-platform-admin';
           rateLimit,
           tenants,
           config.jwtAccessSecret,
+          unitOfWork,
+          audit,
         ),
       inject: [
         USERS,
@@ -104,6 +118,8 @@ import { PlatformAdminSeed } from './seed-platform-admin';
         LOGIN_RATE_LIMIT,
         TENANT_REPOSITORY,
         APP_CONFIG,
+        UNIT_OF_WORK,
+        AUDIT_LOGS,
       ],
     },
     {
@@ -162,8 +178,9 @@ import { PlatformAdminSeed } from './seed-platform-admin';
         users: Users,
         hasher: PasswordHasher,
         unitOfWork: UnitOfWork,
-      ) => new CreateTenantUser(users, hasher, unitOfWork),
-      inject: [USERS, PASSWORD_HASHER, UNIT_OF_WORK],
+        changes: UserChanges,
+      ) => new CreateTenantUser(users, hasher, unitOfWork, changes),
+      inject: [USERS, PASSWORD_HASHER, UNIT_OF_WORK, USER_CHANGES],
     },
     {
       provide: UpdateTenantUser,
@@ -171,8 +188,9 @@ import { PlatformAdminSeed } from './seed-platform-admin';
         users: Users,
         hasher: PasswordHasher,
         unitOfWork: UnitOfWork,
-      ) => new UpdateTenantUser(users, hasher, unitOfWork),
-      inject: [USERS, PASSWORD_HASHER, UNIT_OF_WORK],
+        changes: UserChanges,
+      ) => new UpdateTenantUser(users, hasher, unitOfWork, changes),
+      inject: [USERS, PASSWORD_HASHER, UNIT_OF_WORK, USER_CHANGES],
     },
     {
       provide: GetTenantUser,
@@ -190,8 +208,9 @@ import { PlatformAdminSeed } from './seed-platform-admin';
         users: Users,
         hasher: PasswordHasher,
         unitOfWork: UnitOfWork,
-      ) => new CreateTenantOwner(users, hasher, unitOfWork),
-      inject: [USERS, PASSWORD_HASHER, UNIT_OF_WORK],
+        changes: UserChanges,
+      ) => new CreateTenantOwner(users, hasher, unitOfWork, changes),
+      inject: [USERS, PASSWORD_HASHER, UNIT_OF_WORK, USER_CHANGES],
     },
   ],
   exports: [PASSWORD_HASHER],

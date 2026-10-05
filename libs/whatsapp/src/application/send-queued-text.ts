@@ -9,6 +9,7 @@ import {
   OutboundMessages,
 } from '../domain/outbound-messages.port';
 import { whatsAppSendLog, WhatsAppSendOutcome } from '../domain/send-log';
+import { recordWhatsAppMetric } from './whatsapp-metrics';
 import { WhatsAppProvider } from '../domain/whatsapp-provider';
 
 const TERMINAL = new Set(['SENT', 'FAILED', 'SKIPPED']);
@@ -90,6 +91,7 @@ export class SendQueuedText {
       }),
       'SendQueuedText',
     );
+    recordWhatsAppMetric(outcome);
   }
 
   private token(encrypted: string): string {

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { actorTypeOf, AuditLogs, recordAudit } from '@ciadelivery/audit';
 import { requireActorStore } from '@ciadelivery/customers';
 import {
   Assignments,
@@ -25,6 +26,7 @@ export class AssignCourier {
     private readonly stores: CurrentStore,
     private readonly events: DomainEventPublisher,
     private readonly unitOfWork: UnitOfWork,
+    private readonly audit: AuditLogs,
   ) {}
 
   async execute(
@@ -94,6 +96,16 @@ export class AssignCourier {
         }),
         tx,
       );
+      await recordAudit(this.audit, tx, {
+        tenantId: store.tenantId,
+        actorId: actor.userId,
+        actorType: actorTypeOf(actor.role),
+        action: 'order.courier_assigned',
+        entityType: 'order',
+        entityId: order.id,
+        before: { courierId: null },
+        changes: { courierId: courier.id },
+      });
       return order;
     });
     this.logger.log(

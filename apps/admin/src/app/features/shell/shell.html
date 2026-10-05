@@ -2,16 +2,24 @@
   <strong>Painel</strong>
   @if (user(); as current) {
   <span>{{ current.name }}</span>
-  } @if (canConfigure()) {
-  <a routerLink="/configuracoes">Configurações</a>
-  } @if (canManageCatalog()) {
-  <a routerLink="/cardapio">Cardápio</a>
+  } @if (showDashboard()) {
+  <a routerLink="/">Hoje</a>
   } @if (canReadOrders()) {
   <a routerLink="/pedidos">Pedidos</a>
+  } @if (canManageCatalog()) {
+  <a routerLink="/cardapio">Cardápio</a>
   } @if (canReadCustomers()) {
   <a routerLink="/clientes">Clientes</a>
+  } @if (canReadReports()) {
+  <a routerLink="/relatorios">Relatórios</a>
+  } @if (canConfigure()) {
+  <a routerLink="/configuracoes">Configurações</a>
+  } @if (canManageUsers()) {
+  <a routerLink="/equipe">Equipe</a>
   } @if (canOperateWhatsApp()) {
   <a routerLink="/whatsapp">Conversas</a>
+  } @if (canReadAudit()) {
+  <a routerLink="/auditoria">Auditoria</a>
   }
   <button type="button" (click)="logout()">Sair</button>
 </header>

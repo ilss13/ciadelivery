@@ -33,6 +33,29 @@
 <section class="item">
   <h2>{{ customer.name }}</h2>
   <p>{{ phoneLabel(customer.phone) }}</p>
+  @if (canManagePrivacy()) {
+  <div class="actions">
+    <button type="button" class="secondary" (click)="exportCustomer(customer)" [disabled]="loading()">
+      Exportar dados
+    </button>
+  </div>
+  @if (anonymized()) {
+  <p role="status">Cliente anonimizado. O histórico de pedidos foi mantido.</p>
+  } @else {
+  <form class="stack" [formGroup]="anonymizeForm" (ngSubmit)="anonymize(customer)" novalidate>
+    <p class="muted">
+      Anonimizar troca o nome, o telefone e o endereço detalhado. Os pedidos
+      continuam no histórico, já sem o nome e o telefone originais. Digite o
+      telefone do cliente para confirmar.
+    </p>
+    <label>
+      Confirme o telefone
+      <input formControlName="phone" inputmode="tel" autocomplete="off" />
+    </label>
+    <button type="submit" [disabled]="loading()">Anonimizar cliente</button>
+  </form>
+  }
+  }
   @if (customer.addresses.length === 0) {
   <p class="muted">Nenhum endereço cadastrado.</p>
   } @else {

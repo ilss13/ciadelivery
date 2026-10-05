@@ -35,7 +35,7 @@ export class CustomerEntity {
   @Column({ type: 'varchar', length: 160 })
   name!: string;
 
-  @Column({ type: 'varchar', length: 16 })
+  @Column({ type: 'varchar', length: 64 })
   phone!: string;
 
   @Column({ name: 'created_at', type: 'datetime', precision: 3 })
