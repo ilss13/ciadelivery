@@ -9,6 +9,11 @@ const MESSAGES: Record<string, string> = {
   CONSENT_REQUIRED: 'Autorize o uso dos dados para realizar o pedido.',
   DELIVERY_DISABLED: 'A entrega não está disponível.',
   PICKUP_DISABLED: 'A retirada não está disponível.',
+  OUT_OF_AREA: 'O endereço está fora da área de entrega.',
+  ADDRESS_NOT_FOUND: 'Não encontramos esse endereço.',
+  STORE_ORIGIN_MISSING: 'A loja ainda não tem ponto de partida para a entrega.',
+  GEOCODING_UNAVAILABLE: 'Não foi possível localizar o endereço agora. Tente de novo.',
+  DELIVERY_ZONE_NOT_FOUND: 'Não há faixa de entrega para essa distância.',
   ORDER_NOT_FOUND: 'Pedido não encontrado.',
   IDEMPOTENCY_CONFLICT: 'Não foi possível repetir o envio. Revise o pedido e tente de novo.',
 };

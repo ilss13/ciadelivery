@@ -3,7 +3,7 @@ import { OrderStatus } from './order-status';
 
 export type OrderActorType = 'CUSTOMER' | 'USER' | 'SYSTEM';
 
-export interface OrderAddress {
+export interface OrderAddressDraft {
   line: string;
   number: string;
   district: string;
@@ -11,6 +11,11 @@ export interface OrderAddress {
   state: string;
   postalCode: string;
   complement: string | null;
+}
+
+export interface OrderAddress extends OrderAddressDraft {
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface OrderOptionSnapshot {

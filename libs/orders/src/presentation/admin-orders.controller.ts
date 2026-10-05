@@ -14,7 +14,10 @@ import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { TenantContextInterceptor } from '@ciadelivery/tenancy/guards';
 import { PermissionsGuard, RequestActor, RequirePermissions } from '@ciadelivery/users';
 import { AdminOrders } from '../application/admin-orders';
+import { AdvanceDelivery } from '../application/advance-delivery';
+import { AssignCourier } from '../application/assign-courier';
 import { TransitionAdminOrder } from '../application/transition-admin-order';
+import { AssignCourierDto } from './courier.dto';
 import { actorFrom } from './http';
 import {
   AdminOrderDetailResponse,
@@ -36,6 +39,8 @@ export class AdminOrdersController {
   constructor(
     private readonly orders: AdminOrders,
     private readonly transitions: TransitionAdminOrder,
+    private readonly assignments: AssignCourier,
+    private readonly delivery: AdvanceDelivery,
   ) {}
 
   @Get()
@@ -126,6 +131,40 @@ export class AdminOrdersController {
       'cancel',
       body.note,
     );
+  }
+
+  @Post(':id/assign-courier')
+  @HttpCode(200)
+  @RequirePermissions('orders.assign_courier')
+  @ApiOkResponse({ type: AdminOrderResponse })
+  assignCourier(
+    @Req() request: { actor?: RequestActor },
+    @Param() params: OrderIdParam,
+    @Body() body: AssignCourierDto,
+  ): Promise<AdminOrderResponse> {
+    return this.assignments.execute(actorFrom(request), params.id, body.courierId);
+  }
+
+  @Post(':id/dispatch')
+  @HttpCode(200)
+  @RequirePermissions('orders.assign_courier')
+  @ApiOkResponse({ type: AdminOrderResponse })
+  dispatch(
+    @Req() request: { actor?: RequestActor },
+    @Param() params: OrderIdParam,
+  ): Promise<AdminOrderResponse> {
+    return this.delivery.dispatch(actorFrom(request), params.id);
+  }
+
+  @Post(':id/deliver')
+  @HttpCode(200)
+  @RequirePermissions('orders.deliver')
+  @ApiOkResponse({ type: AdminOrderResponse })
+  deliver(
+    @Req() request: { actor?: RequestActor },
+    @Param() params: OrderIdParam,
+  ): Promise<AdminOrderResponse> {
+    return this.delivery.deliver(actorFrom(request), params.id);
   }
 
   @Post(':id/complete-pickup')

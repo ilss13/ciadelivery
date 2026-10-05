@@ -1,0 +1,99 @@
+<fieldset>
+  <legend>Entrega</legend>
+  <p class="muted">
+    Raio, taxa fixa ou faixas por distância, e o tempo estimado. A loja grava
+    tudo de uma vez.
+  </p>
+  @if (loading()) {
+  <p>Carregando entrega…</p>
+  } @else {
+  <label class="check">
+    <input
+      type="checkbox"
+      [checked]="deliveryEnabled()"
+      (change)="setDeliveryEnabled($event)"
+    />
+    Entrega ligada
+  </label>
+  <label class="check">
+    <input
+      type="checkbox"
+      [checked]="pickupEnabled()"
+      (change)="setPickupEnabled($event)"
+    />
+    Retirada ligada
+  </label>
+  <label>
+    Raio máximo (km)
+    <input
+      [value]="maxRadiusKm()"
+      inputmode="decimal"
+      (input)="setRadius($event)"
+    />
+  </label>
+  <label>
+    Modo da taxa
+    <select [value]="feeMode()" (change)="setFeeMode($event)">
+      <option value="FLAT">Taxa fixa</option>
+      <option value="ZONE">Faixas por distância</option>
+    </select>
+  </label>
+  <label>
+    Taxa fixa (R$)
+    <input
+      [value]="flatFee()"
+      inputmode="decimal"
+      (input)="setFlatFee($event)"
+    />
+  </label>
+  <label>
+    Tempo estimado (minutos)
+    <input
+      [value]="estimatedMinutes()"
+      inputmode="numeric"
+      (input)="setMinutes($event)"
+    />
+  </label>
+  <div class="list">
+    @for (zone of zones(); track zone.key) {
+    <div class="item">
+      <label>
+        De (km)
+        <input
+          [value]="zone.fromKm"
+          inputmode="decimal"
+          (input)="setZone(zone.key, 'fromKm', $event)"
+        />
+      </label>
+      <label>
+        Até (km)
+        <input
+          [value]="zone.toKm"
+          inputmode="decimal"
+          (input)="setZone(zone.key, 'toKm', $event)"
+        />
+      </label>
+      <label>
+        Taxa (R$)
+        <input
+          [value]="zone.fee"
+          inputmode="decimal"
+          (input)="setZone(zone.key, 'fee', $event)"
+        />
+      </label>
+      <button type="button" (click)="removeZone(zone.key)">Remover faixa</button>
+    </div>
+    }
+  </div>
+  <button type="button" (click)="addZone()">Adicionar faixa</button>
+  <button type="button" (click)="save()" [disabled]="saving()">
+    {{ saving() ? 'Salvando…' : 'Salvar entrega' }}
+  </button>
+  }
+  @if (error()) {
+  <p class="error" role="status">{{ error() }}</p>
+  }
+  @if (notice()) {
+  <p role="status">{{ notice() }}</p>
+  }
+</fieldset>

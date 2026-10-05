@@ -53,4 +53,7 @@ Thumbs.db
 # Playwright
 apps/storefront-e2e/test-results/
 apps/storefront-e2e/playwright-report/
+apps/courier-e2e/test-results/
+apps/courier-e2e/playwright-report/
+/test-results/
 apps/storefront-e2e/blob-report/

@@ -16,6 +16,7 @@ x-backend-environment: &backend-environment
   DATABASE_POOL_SIZE: '10'
   CORS_ORIGINS: http://localhost:4200,http://localhost:4201,http://localhost:4202,http://localhost:4203,http://pizzariadoze.localhost:4201,http://burgercentral.localhost:4201
   STORAGE_DRIVER: local
+  GEOCODING_DRIVER: stub
   STORAGE_LOCAL_DIR: /var/lib/ciadelivery/storage
   STORAGE_PUBLIC_BASE_URL: http://localhost:3000
 

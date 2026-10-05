@@ -18,3 +18,7 @@ export * from './lib/storage/local-storage';
 export * from './lib/storage/s3-storage';
 export * from './lib/storage/storage.module';
 export * from './lib/storage/storage-provider';
+export * from './lib/geocoding/geocoding-provider';
+export * from './lib/geocoding/geocoding.module';
+export * from './lib/geocoding/stub-geocoding';
+export * from './lib/geocoding/http-geocoding';

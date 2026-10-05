@@ -31,7 +31,17 @@ class FakeOrdersBoardStore implements OrdersBoardStore {
     return of(card);
   }
 
+  couriers: { id: string; name: string }[] = [];
+
   transition() {
+    return throwError(() => new Error('unused'));
+  }
+
+  listCouriers() {
+    return of(this.couriers);
+  }
+
+  assign() {
     return throwError(() => new Error('unused'));
   }
 }
@@ -107,6 +117,43 @@ describe('OrdersPage', () => {
     expect(text).not.toContain('Aceitar');
     expect(text).not.toContain('Cancelar');
     expect(text).toContain('Iniciar preparo');
+  });
+
+  it('lets an operator assign a ready delivery and finish one on the route', async () => {
+    feed.couriers = [{ id: 'courier-1', name: 'Lia' }];
+    feed.loadResult = [
+      card({ status: 'READY', fulfillment: 'DELIVERY' }),
+      card({
+        id: 'order-2',
+        orderNumber: 8,
+        status: 'OUT_FOR_DELIVERY',
+        fulfillment: 'DELIVERY',
+      }),
+      card({
+        id: 'order-3',
+        orderNumber: 9,
+        status: 'READY',
+        fulfillment: 'PICKUP',
+      }),
+    ];
+    const fixture = await create(feed);
+    TestBed.inject(SessionService).currentUser.set({
+      id: 'user-1',
+      name: 'Dono',
+      email: 'dono@example.com',
+      role: 'OWNER',
+      permissions: ['orders.read', 'orders.assign_courier', 'orders.deliver'],
+    });
+    fixture.detectChanges();
+
+    const ready = column(fixture.nativeElement, 'ready');
+    const route = column(fixture.nativeElement, 'delivery');
+    expect(ready.textContent).toContain('Atribuir');
+    expect(ready.textContent).toContain('Despachar');
+    expect(ready.textContent).toContain('Lia');
+    expect(ready.textContent).toContain('Marcar retirado');
+    expect(route.textContent).toContain('Concluir entrega');
+    expect(route.textContent).not.toContain('Atribuir');
   });
 });
 

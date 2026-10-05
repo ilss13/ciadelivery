@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Entregas">
+  <rect width="64" height="64" rx="14" fill="#17202a"/>
+  <circle cx="32" cy="32" r="16" fill="#f7f4ef"/>
+  <path d="M24 33h16M34 27l6 6-6 6" fill="none" stroke="#17202a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

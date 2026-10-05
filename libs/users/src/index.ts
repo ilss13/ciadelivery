@@ -16,6 +16,7 @@ export {
   PERMISSIONS,
   ROLES,
   TENANT_ROLES,
+  assertAssignablePermissions,
   effectivePermissions,
   isPermission,
   isRole,

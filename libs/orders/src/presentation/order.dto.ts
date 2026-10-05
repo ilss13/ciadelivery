@@ -283,6 +283,12 @@ export class PublicOrderAddressResponse {
 
   @ApiProperty({ nullable: true, type: String })
   complement!: string | null;
+
+  @ApiProperty({ nullable: true, type: Number })
+  latitude!: number | null;
+
+  @ApiProperty({ nullable: true, type: Number })
+  longitude!: number | null;
 }
 
 export class PublicOrderResponse {

@@ -17,9 +17,6 @@ export interface StoreRecord {
   longitude: number | null;
   minimumOrderCents: number;
   isManuallyClosed: boolean;
-  pickupEnabled: boolean;
-  deliveryEnabled: boolean;
-  deliveryFlatFeeCents: number;
   estimatedPrepMinutes: number;
   timezone: string;
   createdAt: Date;
@@ -44,9 +41,23 @@ export interface StoreSettings {
   timezone: string;
 }
 
+export interface StoreCoordinates {
+  latitude: number;
+  longitude: number;
+}
+
 export interface CurrentStore {
   findForCurrentTenant(): Promise<StoreRecord | null>;
-  updateForCurrentTenant(patch: StoreProfileUpdate): Promise<StoreRecord>;
+  updateForCurrentTenant(
+    patch: StoreProfileUpdate,
+    coordinates: StoreCoordinates,
+  ): Promise<StoreRecord>;
+  saveCoordinates(input: {
+    tenantId: string;
+    storeId: string;
+    latitude: number;
+    longitude: number;
+  }): Promise<void>;
 }
 
 export const CURRENT_STORE = Symbol('CURRENT_STORE');

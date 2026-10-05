@@ -3,6 +3,7 @@ import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { of, switchMap } from 'rxjs';
 import { applyBrandTheme } from '../../core/brand-theme';
 import { PublicStoreClient } from '../../core/public-store.client';
 import { formatBrl } from '../../shared/money';
@@ -10,6 +11,7 @@ import { CartStore } from '../cart/cart-store';
 import {
   CheckoutOptions,
   CreateOrderBody,
+  DeliveryQuote,
   OrderAddressInput,
   OrderClient,
   OrderReview,
@@ -56,6 +58,7 @@ export class CheckoutPage implements OnInit {
   readonly error = signal('');
   readonly options = signal<CheckoutOptions | null>(null);
   readonly review = signal<OrderReview | null>(null);
+  readonly deliveryQuote = signal<DeliveryQuote | null>(null);
   readonly lines = this.cart.lines;
 
   private host = '';
@@ -100,6 +103,31 @@ export class CheckoutPage implements OnInit {
 
   format(cents: number): string {
     return formatBrl(cents);
+  }
+
+  formatKm(kilometers: number): string {
+    return `${kilometers.toLocaleString('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })} km`;
+  }
+
+  addressSummary(): string {
+    const address = this.addressPayload();
+    return `${address.line}, ${address.number}, ${address.district}, ${address.city}`;
+  }
+
+  canPlace(): boolean {
+    const quote = this.deliveryQuote();
+    return this.review() !== null && quote !== null && quote.accepted && !this.placing();
+  }
+
+  switchToPickup(): void {
+    if (!this.options()?.pickupEnabled) {
+      return;
+    }
+    this.form.controls.fulfillment.setValue('PICKUP');
+    this.loadReview();
   }
 
   continue(): void {
@@ -164,15 +192,29 @@ export class CheckoutPage implements OnInit {
     this.reviewing.set(true);
     this.error.set('');
     this.review.set(null);
+    this.deliveryQuote.set(null);
     const fulfillment = this.form.controls.fulfillment.value;
+    const quoteBody =
+      fulfillment === 'DELIVERY'
+        ? { fulfillment, address: this.addressPayload() }
+        : { fulfillment: 'PICKUP' as const };
     this.orders
-      .review(this.host, {
-        fulfillment,
-        paymentMethodCode: this.form.controls.paymentMethodCode.value,
-        items: this.itemPayload(),
-        ...(fulfillment === 'DELIVERY' ? { address: this.addressPayload() } : {}),
-      })
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .quote(this.host, quoteBody)
+      .pipe(
+        switchMap((quote) => {
+          this.deliveryQuote.set(quote);
+          if (!quote.accepted) {
+            return of(null);
+          }
+          return this.orders.review(this.host, {
+            fulfillment,
+            paymentMethodCode: this.form.controls.paymentMethodCode.value,
+            items: this.itemPayload(),
+            ...(fulfillment === 'DELIVERY' ? { address: this.addressPayload() } : {}),
+          });
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: (review) => {
           this.review.set(review);
@@ -186,7 +228,7 @@ export class CheckoutPage implements OnInit {
   }
 
   placeOrder(): void {
-    if (this.placing() || this.review() === null) {
+    if (!this.canPlace()) {
       return;
     }
     if (!this.form.controls.operational.value) {

@@ -1,9 +1,10 @@
 import { ValidatePublicCart } from '@ciadelivery/catalog';
 import { CustomerRepository } from '@ciadelivery/customers';
+import { DeliveryPolicies } from '@ciadelivery/delivery';
 import { DomainException } from '@ciadelivery/shared';
 import { CurrentStore } from '@ciadelivery/stores';
 import { DeliveryQuotePort, Fulfillment } from '../domain/delivery-quote';
-import { OrderAddress, OrderReview } from '../domain/order';
+import { OrderAddressDraft, OrderReview } from '../domain/order';
 import {
   assertCart,
   assertQuote,
@@ -13,7 +14,7 @@ import {
 
 export interface ReviewOrderInput {
   fulfillment: Fulfillment;
-  address: OrderAddress | null;
+  address: OrderAddressDraft | null;
   paymentMethodCode: string;
   items: readonly {
     productId: string;
@@ -27,13 +28,14 @@ export class ReviewPublicOrder {
   constructor(
     private readonly customers: CustomerRepository,
     private readonly stores: CurrentStore,
+    private readonly policies: DeliveryPolicies,
     private readonly carts: ValidatePublicCart,
     private readonly quotes: DeliveryQuotePort,
   ) {}
 
   async execute(input: ReviewOrderInput): Promise<OrderReview> {
     const store = await requireStore(this.stores);
-    resolveAddress(input.fulfillment, input.address);
+    const address = resolveAddress(input.fulfillment, input.address);
     const cart = await this.carts.execute(
       input.items.map((item) => ({
         productId: item.productId,
@@ -59,11 +61,11 @@ export class ReviewPublicOrder {
       );
     }
 
-    const quote = this.quotes.quote({
+    const policy = await this.policies.find(store.tenantId, store.id);
+    const quote = await this.quotes.quote({
       fulfillment: input.fulfillment,
-      pickupEnabled: store.pickupEnabled,
-      deliveryEnabled: store.deliveryEnabled,
-      flatFeeCents: store.deliveryFlatFeeCents,
+      policy,
+      address,
     });
     assertQuote(quote);
 

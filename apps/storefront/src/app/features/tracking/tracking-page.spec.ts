@@ -99,6 +99,59 @@ describe('TrackingPage', () => {
     http.verify();
   });
 
+  it('shows Saiu para entrega and Pedido entregue from the socket and the GET', async () => {
+    const fixture = await mount(feed);
+    const http = TestBed.inject(HttpTestingController);
+    flushStore(http);
+    http
+      .expectOne((call) => call.url.endsWith('/api/v1/public/orders/token-opaco'))
+      .flush(
+        orderPayload({
+          status: 'READY',
+          history: [
+            { toStatus: 'NEW', createdAt: '2026-10-04T18:00:00.000Z', note: null },
+            { toStatus: 'ACCEPTED', createdAt: '2026-10-04T18:01:00.000Z', note: null },
+            { toStatus: 'IN_PREPARATION', createdAt: '2026-10-04T18:02:00.000Z', note: null },
+            { toStatus: 'READY', createdAt: '2026-10-04T18:03:00.000Z', note: null },
+          ],
+        }),
+      );
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    feed.messages.next({
+      kind: 'event',
+      event: {
+        orderId: 'order-1',
+        status: 'OUT_FOR_DELIVERY',
+        orderNumber: 12,
+        occurredAt: '2026-10-04T18:10:00.000Z',
+      },
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Saiu para entrega');
+
+    feed.messages.next({
+      kind: 'event',
+      event: {
+        orderId: 'order-1',
+        status: 'DELIVERED',
+        orderNumber: 12,
+        occurredAt: '2026-10-04T18:20:00.000Z',
+      },
+    });
+    fixture.detectChanges();
+    const timeline = fixture.nativeElement.querySelector('.timeline') as HTMLElement;
+    const timelineText = timeline.textContent ?? '';
+    expect(timelineText.indexOf('Saiu para entrega')).toBeLessThan(
+      timelineText.indexOf('Pedido entregue'),
+    );
+    expect(fixture.nativeElement.querySelector('.status-label')?.textContent).toContain(
+      'Pedido entregue',
+    );
+    http.verify();
+  });
+
   it('shows the refusal note from the public order and reloads after reconnect', async () => {
     const fixture = await mount(feed);
     const http = TestBed.inject(HttpTestingController);

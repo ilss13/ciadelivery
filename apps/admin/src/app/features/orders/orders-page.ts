@@ -28,6 +28,7 @@ import {
 } from './order-board';
 import {
   ORDERS_BOARD_STORE,
+  CourierOption,
   OrderAction,
   OrderBoardMessage,
 } from './orders-board.store';
@@ -67,6 +68,8 @@ export class OrdersPage implements OnInit {
   readonly note = signal('');
   readonly actionError = signal('');
   readonly actionErrorId = signal<string | null>(null);
+  readonly couriers = signal<CourierOption[]>([]);
+  readonly courierChoice = signal<Record<string, string>>({});
 
   constructor() {
     this.reload$
@@ -113,6 +116,10 @@ export class OrdersPage implements OnInit {
       .watch()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((message) => this.onMessage(message));
+    this.feed
+      .listCouriers()
+      .pipe(catchError(() => of([])), takeUntilDestroyed(this.destroyRef))
+      .subscribe((couriers) => this.couriers.set(couriers));
     this.reload$.next();
   }
 
@@ -226,6 +233,26 @@ export class OrdersPage implements OnInit {
     );
   }
 
+  canAssign(order: OrderCard): boolean {
+    return (
+      order.status === 'READY' &&
+      order.fulfillment === 'DELIVERY' &&
+      this.allows('orders.assign_courier')
+    );
+  }
+
+  canDispatch(order: OrderCard): boolean {
+    return this.canAssign(order);
+  }
+
+  canDeliver(order: OrderCard): boolean {
+    return (
+      order.status === 'OUT_FOR_DELIVERY' &&
+      order.fulfillment === 'DELIVERY' &&
+      this.allows('orders.deliver')
+    );
+  }
+
   canCancel(order: OrderCard): boolean {
     return (
       (order.status === 'NEW' ||
@@ -280,6 +307,56 @@ export class OrdersPage implements OnInit {
 
   completePickup(order: OrderCard): void {
     this.run(order.id, 'complete-pickup', null);
+  }
+
+  chosenCourier(orderId: string): string {
+    return this.courierChoice()[orderId] ?? '';
+  }
+
+  onCourierChange(orderId: string, event: Event): void {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) {
+      return;
+    }
+    this.courierChoice.update((current) => ({
+      ...current,
+      [orderId]: select.value,
+    }));
+  }
+
+  assign(order: OrderCard): void {
+    const courierId = this.chosenCourier(order.id);
+    if (courierId.length === 0) {
+      this.actionErrorId.set(order.id);
+      this.actionError.set('Escolha um entregador.');
+      return;
+    }
+    this.busyId.set(order.id);
+    this.actionError.set('');
+    this.actionErrorId.set(null);
+    this.feed
+      .assign(order.id, courierId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (card) => {
+          this.pending.add(card.id);
+          this.orders.set(placeCard(this.orders(), card, new Date()));
+          this.busyId.set(null);
+        },
+        error: (error: unknown) => {
+          this.busyId.set(null);
+          this.actionErrorId.set(order.id);
+          this.actionError.set(actionMessage(readErrorCode(error)));
+        },
+      });
+  }
+
+  dispatch(order: OrderCard): void {
+    this.run(order.id, 'dispatch', null);
+  }
+
+  deliver(order: OrderCard): void {
+    this.run(order.id, 'deliver', null);
   }
 
   private onMessage(message: OrderBoardMessage): void {
@@ -387,6 +464,18 @@ function actionMessage(code: string): string {
   }
   if (code === 'ORDER_NOT_FOUND') {
     return 'Pedido não encontrado.';
+  }
+  if (code === 'COURIER_REQUIRED') {
+    return 'Atribua um entregador antes de despachar.';
+  }
+  if (code === 'COURIER_NOT_FOUND') {
+    return 'Entregador não encontrado.';
+  }
+  if (code === 'ORDER_NOT_READY' || code === 'PICKUP_NOT_ASSIGNABLE') {
+    return 'Só um pedido de entrega pronto pode ser atribuído.';
+  }
+  if (code === 'ASSIGNMENT_EXISTS') {
+    return 'Este pedido já tem um entregador.';
   }
   return 'Não foi possível atualizar o pedido.';
 }

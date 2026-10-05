@@ -12,6 +12,7 @@ export function orderEvent(input: {
   fulfillment: Fulfillment;
   type: string;
   occurredAt: Date;
+  courierUserId?: string;
 }): DomainEventDraft {
   return {
     id: input.id,
@@ -27,6 +28,9 @@ export function orderEvent(input: {
       status: input.status,
       fulfillment: input.fulfillment,
       occurredAt: input.occurredAt.toISOString(),
+      ...(input.courierUserId === undefined
+        ? {}
+        : { courierUserId: input.courierUserId }),
     },
   };
 }

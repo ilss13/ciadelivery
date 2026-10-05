@@ -1,7 +1,13 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import { DOMAIN_EVENTS, DomainEventPublisher } from '@ciadelivery/orders';
-import { DomainException, loadEnvFile } from '@ciadelivery/shared';
+import {
+  DomainException,
+  GEOCODING,
+  GeocodingProvider,
+  isStubGeocoding,
+  loadEnvFile,
+} from '@ciadelivery/shared';
 import { UNIT_OF_WORK, UnitOfWork } from '@ciadelivery/tenancy';
 import Redis from 'ioredis';
 import request from 'supertest';
@@ -169,6 +175,14 @@ describe('public orders', () => {
           createdTenantIds,
         );
         await dataSource.query(
+          `DELETE FROM delivery_zones WHERE tenant_id IN (${marks})`,
+          createdTenantIds,
+        );
+        await dataSource.query(
+          `DELETE FROM delivery_configs WHERE tenant_id IN (${marks})`,
+          createdTenantIds,
+        );
+        await dataSource.query(
           `DELETE FROM stores WHERE tenant_id IN (${marks})`,
           createdTenantIds,
         );
@@ -206,7 +220,7 @@ describe('public orders', () => {
     await openStore(ownerA.token);
     const dataSource = app.get(DataSource);
     await dataSource.query(
-      `UPDATE stores SET delivery_enabled = 0, delivery_flat_fee_cents = 650 WHERE tenant_id = ?`,
+      `UPDATE delivery_configs SET delivery_enabled = 0, flat_fee_cents = 650 WHERE tenant_id = ?`,
       [ownerA.tenantId],
     );
 
@@ -236,7 +250,7 @@ describe('public orders', () => {
     expect(disabled.body.error.code).toBe('DELIVERY_DISABLED');
 
     await dataSource.query(
-      `UPDATE stores SET delivery_enabled = 1 WHERE tenant_id = ?`,
+      `UPDATE delivery_configs SET delivery_enabled = 1 WHERE tenant_id = ?`,
       [ownerA.tenantId],
     );
 
@@ -366,7 +380,11 @@ describe('public orders', () => {
         subtotalCents: 4990,
         deliveryFeeCents: 650,
         totalCents: 5640,
-        address: deliveryAddress(),
+        address: expect.objectContaining({
+          ...deliveryAddress(),
+          latitude: expect.any(Number),
+          longitude: expect.any(Number),
+        }),
       }),
     );
     expect(loaded.body.tenantId).toBeUndefined();
@@ -787,6 +805,148 @@ describe('public orders', () => {
     expect(missing.body.error.code).toBe('OUTBOX_NOT_FOUND');
   });
 
+  it('quotes a zone fee, blocks an address outside the area, and keeps the saved fee', async () => {
+    const geocoding = app.get<GeocodingProvider>(GEOCODING);
+    if (!isStubGeocoding(geocoding)) {
+      throw new Error('Expected the stub geocoding provider');
+    }
+    geocoding.clear();
+    const owner = await createOwner('faixa', 'Faixa');
+    const catalog = await createProduct(owner.token);
+    await openStore(owner.token);
+    const dataSource = app.get(DataSource);
+    const config = await request(app.getHttpServer())
+      .get('/api/v1/admin/delivery/config')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    const originLatitude = Number(config.body.originLatitude);
+    const originLongitude = Number(config.body.originLongitude);
+    expect(Number.isFinite(originLatitude)).toBe(true);
+    const inside = {
+      latitude: originLatitude + 2 / 111.195,
+      longitude: originLongitude,
+    };
+    const outside = {
+      latitude: originLatitude + 0.2,
+      longitude: originLongitude,
+    };
+    const insideAddress = {
+      ...deliveryAddress(),
+      line: 'Rua Perto',
+      number: '20',
+    };
+    const outsideAddress = {
+      ...deliveryAddress(),
+      line: 'Rua Longe',
+      number: '900',
+    };
+    const missingAddress = {
+      ...deliveryAddress(),
+      line: 'Rua Nenhuma',
+      number: '0',
+    };
+    geocoding.register(insideAddress, inside);
+    geocoding.register(outsideAddress, outside);
+    geocoding.register(missingAddress, null);
+
+    await request(app.getHttpServer())
+      .put('/api/v1/admin/delivery/config')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        deliveryEnabled: true,
+        pickupEnabled: true,
+        maxRadiusKm: 8,
+        feeMode: 'ZONE',
+        flatFeeCents: 0,
+        estimatedMinutes: 40,
+        zones: [
+          { fromKm: 0, toKm: 3, feeCents: 500 },
+          { fromKm: 3, toKm: 5, feeCents: 700 },
+          { fromKm: 5, toKm: 8, feeCents: 1000 },
+        ],
+      })
+      .expect(200);
+
+    const accepted = await request(app.getHttpServer())
+      .post('/api/v1/public/delivery/quote')
+      .set('X-Tenant-Host', `${owner.tenantSlug}.localhost`)
+      .send({ fulfillment: 'DELIVERY', address: insideAddress })
+      .expect(200);
+    expect(accepted.body.accepted).toBe(true);
+    expect(accepted.body.feeCents).toBe(500);
+    expect(accepted.body.estimatedMinutes).toBe(40);
+    expect(accepted.body.distanceKm).toBeGreaterThan(1.5);
+    expect(accepted.body.distanceKm).toBeLessThan(2.5);
+
+    const refused = await request(app.getHttpServer())
+      .post('/api/v1/public/delivery/quote')
+      .set('X-Tenant-Host', `${owner.tenantSlug}.localhost`)
+      .send({ fulfillment: 'DELIVERY', address: outsideAddress })
+      .expect(200);
+    expect(refused.body).toEqual(
+      expect.objectContaining({
+        accepted: false,
+        reason: 'OUT_OF_AREA',
+        feeCents: 0,
+      }),
+    );
+
+    const ordersBefore = await count(dataSource, 'orders', owner.tenantId);
+    const blocked = await postOrder(
+      owner.tenantSlug,
+      orderBody(catalog, { fulfillment: 'DELIVERY', address: outsideAddress }),
+    );
+    expect(blocked.status).toBe(422);
+    expect(blocked.body.error.code).toBe('OUT_OF_AREA');
+    const unknown = await postOrder(
+      owner.tenantSlug,
+      orderBody(catalog, { fulfillment: 'DELIVERY', address: missingAddress }),
+    );
+    expect(unknown.status).toBe(422);
+    expect(unknown.body.error.code).toBe('ADDRESS_NOT_FOUND');
+    expect(await count(dataSource, 'orders', owner.tenantId)).toBe(ordersBefore);
+
+    const created = await postOrder(
+      owner.tenantSlug,
+      orderBody(catalog, { fulfillment: 'DELIVERY', address: insideAddress }),
+    );
+    expect(created.status).toBe(201);
+    const saved: Array<{
+      delivery_fee_cents: number | string;
+      address_snapshot: { latitude?: number } | string;
+    }> = await dataSource.query(
+      `SELECT delivery_fee_cents, address_snapshot FROM orders WHERE id = ?`,
+      [created.body.orderId],
+    );
+    expect(Number(saved[0]?.delivery_fee_cents)).toBe(500);
+    const snapshot = readSnapshot(saved[0]?.address_snapshot);
+    expect(snapshot.latitude).toBeCloseTo(inside.latitude, 4);
+    const addresses: Array<{ latitude: number | string | null }> =
+      await dataSource.query(
+        `SELECT latitude FROM customer_addresses WHERE tenant_id = ?`,
+        [owner.tenantId],
+      );
+    expect(Number(addresses[0]?.latitude)).toBeCloseTo(inside.latitude, 4);
+
+    const zones = await request(app.getHttpServer())
+      .get('/api/v1/admin/delivery/zones')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    const near = (zones.body.zones as Array<{ id: string; fromKm: number }>).find(
+      (zone) => zone.fromKm === 0,
+    );
+    await request(app.getHttpServer())
+      .patch(`/api/v1/admin/delivery/zones/${near?.id ?? ''}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ feeCents: 900 })
+      .expect(200);
+    const frozen = await request(app.getHttpServer())
+      .get(`/api/v1/public/orders/${created.body.trackingToken as string}`)
+      .expect(200);
+    expect(frozen.body.deliveryFeeCents).toBe(500);
+    geocoding.clear();
+  });
+
   async function outboxRows(
     dataSource: DataSource,
     orderId: string,
@@ -918,11 +1078,24 @@ describe('public orders', () => {
   }
 });
 
+function readSnapshot(value: { latitude?: number } | string | undefined): {
+  latitude?: number;
+} {
+  if (value === undefined) {
+    return {};
+  }
+  if (typeof value === 'string') {
+    return JSON.parse(value) as { latitude?: number };
+  }
+  return value;
+}
+
 function orderBody(
   catalog: { productId: string; optionId: string },
   patch: {
     fulfillment?: 'DELIVERY' | 'PICKUP';
     includeAddress?: boolean;
+    address?: ReturnType<typeof deliveryAddress>;
     notes?: string | null;
     customer?: { name: string; phone: string };
     consents?: {
@@ -937,7 +1110,7 @@ function orderBody(
   return {
     customer: patch.customer ?? { name: 'Ana', phone: '11988887777' },
     fulfillment,
-    ...(includeAddress ? { address: deliveryAddress() } : {}),
+    ...(includeAddress ? { address: patch.address ?? deliveryAddress() } : {}),
     paymentMethodCode: 'CASH',
     notes: patch.notes === undefined ? null : patch.notes,
     consents: patch.consents ?? {

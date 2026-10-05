@@ -36,6 +36,15 @@ export interface OrderItemInput {
   notes: string | null;
 }
 
+export interface DeliveryQuote {
+  accepted: boolean;
+  fulfillment: 'DELIVERY' | 'PICKUP';
+  distanceKm: number | null;
+  feeCents: number;
+  estimatedMinutes: number | null;
+  reason: string | null;
+}
+
 export interface OrderReview {
   items: Array<{
     productName: string;
@@ -108,6 +117,18 @@ export class OrderClient {
 
   checkout(host: string): Observable<CheckoutOptions> {
     return this.http.get<CheckoutOptions>(apiUrl('/api/v1/public/checkout'), {
+      headers: { 'X-Tenant-Host': host },
+    });
+  }
+
+  quote(
+    host: string,
+    body: {
+      fulfillment: 'DELIVERY' | 'PICKUP';
+      address?: OrderAddressInput;
+    },
+  ): Observable<DeliveryQuote> {
+    return this.http.post<DeliveryQuote>(apiUrl('/api/v1/public/delivery/quote'), body, {
       headers: { 'X-Tenant-Host': host },
     });
   }

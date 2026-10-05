@@ -2,13 +2,20 @@ import { CartValidation } from '@ciadelivery/catalog';
 import { DomainException } from '@ciadelivery/shared';
 import { CurrentStore, StoreRecord } from '@ciadelivery/stores';
 import { currentTenant } from '@ciadelivery/tenancy/domain';
-import { DeliveryQuoteResult, Fulfillment } from '../domain/delivery-quote';
-import { OrderAddress } from '../domain/order';
+import {
+  DeliveryQuoteResult,
+  Fulfillment,
+} from '../domain/delivery-quote';
+import { OrderAddressDraft } from '../domain/order';
 
 const QUOTE_MESSAGES: Record<string, string> = {
   PICKUP_DISABLED: 'Pickup is not available',
   DELIVERY_DISABLED: 'Delivery is not available',
   DELIVERY_UNAVAILABLE: 'Delivery is not available',
+  OUT_OF_AREA: 'The address is outside the delivery area',
+  DELIVERY_ZONE_NOT_FOUND: 'No delivery zone matches this distance',
+  STORE_ORIGIN_MISSING: 'The store origin is missing',
+  ADDRESS_NOT_FOUND: 'The address was not found',
 };
 
 export function assertCart(cart: CartValidation): void {
@@ -57,8 +64,8 @@ export function assertQuote(quote: DeliveryQuoteResult): void {
 
 export function resolveAddress(
   fulfillment: Fulfillment,
-  address: OrderAddress | null,
-): OrderAddress | null {
+  address: OrderAddressDraft | null,
+): OrderAddressDraft | null {
   if (fulfillment === 'PICKUP') {
     return null;
   }

@@ -100,7 +100,13 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
           this.config.jwtAccessSecret,
           new Date(),
         );
-        return roomsForStaff(claims);
+        return roomsForStaff({
+          role: claims.role,
+          userId: claims.sub,
+          tenantId: claims.tenantId,
+          storeId: claims.storeId,
+          permissions: claims.permissions,
+        });
       } catch {
         this.logger.warn('Rejected realtime connection', 'RealtimeGateway');
         return null;

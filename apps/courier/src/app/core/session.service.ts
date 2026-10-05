@@ -80,6 +80,16 @@ export class SessionService {
     return this.refreshing;
   }
 
+  logout(): void {
+    this.http
+      .post(apiUrl('/api/v1/auth/logout'), null, {
+        withCredentials: true,
+        context: new HttpContext().set(SKIP_AUTH, true),
+      })
+      .subscribe({ error: () => undefined });
+    this.clear();
+  }
+
   loadProfile(): Observable<SessionUser> {
     return this.http.get<UserResponse>(apiUrl('/api/v1/auth/me')).pipe(
       map((user) => ({ id: user.id, name: user.name, role: user.role })),

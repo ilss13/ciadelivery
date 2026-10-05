@@ -6,11 +6,21 @@ import {
   CustomerRepository,
   normalizeBrazilPhone,
 } from '@ciadelivery/customers';
+import { DeliveryPolicies } from '@ciadelivery/delivery';
 import { DomainException, JsonLogger } from '@ciadelivery/shared';
 import { CurrentStore } from '@ciadelivery/stores';
 import { TransactionContext, UnitOfWork } from '@ciadelivery/tenancy/domain';
-import { DeliveryQuotePort, Fulfillment } from '../domain/delivery-quote';
-import { CreatedOrder, OrderAddress, trackingPath } from '../domain/order';
+import {
+  DeliveryQuotePort,
+  DeliveryQuoteResult,
+  Fulfillment,
+} from '../domain/delivery-quote';
+import {
+  CreatedOrder,
+  OrderAddress,
+  OrderAddressDraft,
+  trackingPath,
+} from '../domain/order';
 import { DomainEventPublisher } from '../domain/domain-event';
 import { ORDER_CREATED_EVENT } from '../domain/order-command';
 import { OrderRepository } from '../domain/order-repository';
@@ -32,7 +42,7 @@ export interface CreateOrderItemInput {
 export interface CreateOrderInput {
   customer: { name: string; phone: string };
   fulfillment: Fulfillment;
-  address: OrderAddress | null;
+  address: OrderAddressDraft | null;
   paymentMethodCode: string;
   notes: string | null;
   consents: {
@@ -55,6 +65,7 @@ export class CreatePublicOrder {
   constructor(
     private readonly customers: CustomerRepository,
     private readonly stores: CurrentStore,
+    private readonly policies: DeliveryPolicies,
     private readonly carts: ValidatePublicCart,
     private readonly quotes: DeliveryQuotePort,
     private readonly orders: OrderRepository,
@@ -168,14 +179,15 @@ export class CreatePublicOrder {
         );
       }
 
-      const address = resolveAddress(input.fulfillment, input.address);
-      const quote = this.quotes.quote({
+      const policy = await this.policies.find(store.tenantId, store.id);
+      const addressInput = resolveAddress(input.fulfillment, input.address);
+      const quote = await this.quotes.quote({
         fulfillment: input.fulfillment,
-        pickupEnabled: store.pickupEnabled,
-        deliveryEnabled: store.deliveryEnabled,
-        flatFeeCents: store.deliveryFlatFeeCents,
+        policy,
+        address: addressInput,
       });
       assertQuote(quote);
+      const address = locateAddress(addressInput, quote);
 
       const orderId = randomUUID();
       const orderNumber = await this.orders.allocateOrderNumber(
@@ -270,8 +282,8 @@ export class CreatePublicOrder {
           city: address.city,
           state: address.state,
           postalCode: address.postalCode,
-          latitude: null,
-          longitude: null,
+          latitude: address.latitude,
+          longitude: address.longitude,
           createdAt: now,
         };
         await this.customers.insertAddress(saved, tx);
@@ -357,6 +369,27 @@ export class CreatePublicOrder {
       return raced;
     }
   }
+}
+
+function locateAddress(
+  address: OrderAddressDraft | null,
+  quote: DeliveryQuoteResult,
+): OrderAddress | null {
+  if (address === null) {
+    return null;
+  }
+  if (quote.latitude === null || quote.longitude === null) {
+    throw new DomainException(
+      'ADDRESS_NOT_FOUND',
+      'The address was not found',
+      422,
+    );
+  }
+  return {
+    ...address,
+    latitude: quote.latitude,
+    longitude: quote.longitude,
+  };
 }
 
 function readIdempotencyKey(value: string | undefined): string {

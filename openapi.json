@@ -2083,8 +2083,8 @@
             "required": false,
             "in": "query",
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "format": "date-time",
+              "type": "string"
             }
           },
           {
@@ -2092,8 +2092,8 @@
             "required": false,
             "in": "query",
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "format": "date-time",
+              "type": "string"
             }
           }
         ],
@@ -2295,6 +2295,94 @@
         ]
       }
     },
+    "/api/v1/admin/orders/{id}/assign-courier": {
+      "post": {
+        "operationId": "AdminOrdersController_assignCourier",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignCourierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOrderResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-orders"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{id}/dispatch": {
+      "post": {
+        "operationId": "AdminOrdersController_dispatch",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOrderResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-orders"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{id}/deliver": {
+      "post": {
+        "operationId": "AdminOrdersController_deliver",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOrderResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-orders"
+        ]
+      }
+    },
     "/api/v1/admin/orders/{id}/complete-pickup": {
       "post": {
         "operationId": "AdminOrdersController_completePickup",
@@ -2318,6 +2406,155 @@
         ],
         "tags": [
           "admin-orders"
+        ]
+      }
+    },
+    "/api/v1/courier/orders": {
+      "get": {
+        "operationId": "CourierOrdersController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourierOrderListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "courier-orders"
+        ]
+      }
+    },
+    "/api/v1/courier/orders/{id}": {
+      "get": {
+        "operationId": "CourierOrdersController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourierOrderDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "courier-orders"
+        ]
+      }
+    },
+    "/api/v1/courier/orders/{id}/start": {
+      "post": {
+        "operationId": "CourierOrdersController_start",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourierOrderDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "courier-orders"
+        ]
+      }
+    },
+    "/api/v1/courier/orders/{id}/complete": {
+      "post": {
+        "operationId": "CourierOrdersController_complete",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourierOrderDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "courier-orders"
+        ]
+      }
+    },
+    "/api/v1/courier/deliveries": {
+      "get": {
+        "operationId": "CourierOrdersController_history",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourierHistoryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "courier-orders"
         ]
       }
     },
@@ -2354,6 +2591,411 @@
         ],
         "tags": [
           "platform-outbox"
+        ]
+      }
+    },
+    "/api/v1/admin/delivery/config": {
+      "get": {
+        "operationId": "AdminDeliveryController_getConfig",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryConfigResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-delivery"
+        ]
+      },
+      "put": {
+        "description": "Saves radius, fee mode and timing. Include zones to replace the whole set and reject overlaps.",
+        "operationId": "AdminDeliveryController_updateConfig",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDeliveryConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryConfigResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update delivery configuration",
+        "tags": [
+          "admin-delivery"
+        ]
+      }
+    },
+    "/api/v1/admin/delivery/zones": {
+      "get": {
+        "operationId": "AdminDeliveryController_listZones",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryZoneListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-delivery"
+        ]
+      },
+      "put": {
+        "description": "Replaces the full list in one request so the settings screen can save at once. POST, PATCH and DELETE change a single zone.",
+        "operationId": "AdminDeliveryController_replaceZones",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceDeliveryZonesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryZoneListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace every delivery zone",
+        "tags": [
+          "admin-delivery"
+        ]
+      },
+      "post": {
+        "operationId": "AdminDeliveryController_addZone",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveryZoneInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryZoneResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-delivery"
+        ]
+      }
+    },
+    "/api/v1/admin/delivery/zones/{id}": {
+      "patch": {
+        "operationId": "AdminDeliveryController_updateZone",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchDeliveryZoneDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryZoneResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-delivery"
+        ]
+      },
+      "delete": {
+        "operationId": "AdminDeliveryController_deleteZone",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-delivery"
+        ]
+      }
+    },
+    "/api/v1/public/delivery/quote": {
+      "post": {
+        "operationId": "PublicDeliveryController_quoteDelivery",
+        "parameters": [
+          {
+            "name": "X-Tenant-Host",
+            "in": "header",
+            "description": "Replaces the Host header only when NODE_ENV is local or development",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicDeliveryQuoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicDeliveryQuoteResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "public-delivery"
+        ]
+      }
+    },
+    "/api/v1/admin/couriers": {
+      "get": {
+        "operationId": "AdminCouriersController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "active",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "AVAILABLE",
+                "UNAVAILABLE"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourierPageResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-couriers"
+        ]
+      },
+      "post": {
+        "operationId": "AdminCouriersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCourierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedCourierResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-couriers"
+        ]
+      }
+    },
+    "/api/v1/admin/couriers/{id}": {
+      "patch": {
+        "operationId": "AdminCouriersController_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCourierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourierResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-couriers"
         ]
       }
     },
@@ -4667,6 +5309,14 @@
           "complement": {
             "type": "string",
             "nullable": true
+          },
+          "latitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "nullable": true
           }
         },
         "required": [
@@ -4676,7 +5326,9 @@
           "city",
           "state",
           "postalCode",
-          "complement"
+          "complement",
+          "latitude",
+          "longitude"
         ]
       },
       "PublicOrderItemResponse": {
@@ -4983,6 +5635,47 @@
           "customerName"
         ]
       },
+      "AdminOrderPageMeta": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ]
+      },
+      "AdminOrderPageResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminOrderResponse"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/AdminOrderPageMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
       "AdminOrderDetailResponse": {
         "type": "object",
         "properties": {
@@ -5030,6 +5723,7 @@
           },
           "address": {
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/PublicOrderAddressResponse"
@@ -5086,47 +5780,6 @@
           "history"
         ]
       },
-      "AdminOrderPageMeta": {
-        "type": "object",
-        "properties": {
-          "page": {
-            "type": "number"
-          },
-          "pageSize": {
-            "type": "number"
-          },
-          "total": {
-            "type": "number"
-          },
-          "totalPages": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "page",
-          "pageSize",
-          "total",
-          "totalPages"
-        ]
-      },
-      "AdminOrderPageResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AdminOrderResponse"
-            }
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AdminOrderPageMeta"
-          }
-        },
-        "required": [
-          "data",
-          "meta"
-        ]
-      },
       "OptionalOrderNoteDto": {
         "type": "object",
         "properties": {
@@ -5149,6 +5802,233 @@
           "note"
         ]
       },
+      "AssignCourierDto": {
+        "type": "object",
+        "properties": {
+          "courierId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "courierId"
+        ]
+      },
+      "CourierAddressResponse": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "complement": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "line",
+          "number",
+          "district",
+          "city",
+          "state",
+          "postalCode",
+          "complement"
+        ]
+      },
+      "CourierOrderResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orderNumber": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "ACCEPTED",
+              "IN_PREPARATION",
+              "READY",
+              "OUT_FOR_DELIVERY",
+              "DELIVERED",
+              "REJECTED",
+              "CANCELLED"
+            ]
+          },
+          "totalCents": {
+            "type": "number"
+          },
+          "address": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CourierAddressResponse"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "orderNumber",
+          "status",
+          "totalCents",
+          "address"
+        ]
+      },
+      "CourierOrderListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourierOrderResponse"
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "CourierOrderDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orderNumber": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "ACCEPTED",
+              "IN_PREPARATION",
+              "READY",
+              "OUT_FOR_DELIVERY",
+              "DELIVERED",
+              "REJECTED",
+              "CANCELLED"
+            ]
+          },
+          "totalCents": {
+            "type": "number"
+          },
+          "address": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CourierAddressResponse"
+              }
+            ]
+          },
+          "customerPhone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "orderNumber",
+          "status",
+          "totalCents",
+          "address",
+          "customerPhone"
+        ]
+      },
+      "CourierHistoryItemResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orderNumber": {
+            "type": "number"
+          },
+          "totalCents": {
+            "type": "number"
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "address": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CourierAddressResponse"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "orderNumber",
+          "totalCents",
+          "deliveredAt",
+          "address"
+        ]
+      },
+      "CourierHistoryMeta": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ]
+      },
+      "CourierHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourierHistoryItemResponse"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/CourierHistoryMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
       "RequeuedOutboxResponse": {
         "type": "object",
         "properties": {
@@ -5167,6 +6047,503 @@
           "id",
           "status"
         ]
+      },
+      "DeliveryConfigResponse": {
+        "type": "object",
+        "properties": {
+          "deliveryEnabled": {
+            "type": "boolean"
+          },
+          "pickupEnabled": {
+            "type": "boolean"
+          },
+          "maxRadiusKm": {
+            "type": "number"
+          },
+          "feeMode": {
+            "type": "string",
+            "enum": [
+              "FLAT",
+              "ZONE"
+            ]
+          },
+          "flatFeeCents": {
+            "type": "number"
+          },
+          "estimatedMinutes": {
+            "type": "number"
+          },
+          "originLatitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "originLongitude": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "deliveryEnabled",
+          "pickupEnabled",
+          "maxRadiusKm",
+          "feeMode",
+          "flatFeeCents",
+          "estimatedMinutes",
+          "originLatitude",
+          "originLongitude"
+        ]
+      },
+      "DeliveryZoneInputDto": {
+        "type": "object",
+        "properties": {
+          "fromKm": {
+            "type": "number",
+            "example": 0
+          },
+          "toKm": {
+            "type": "number",
+            "example": 3
+          },
+          "feeCents": {
+            "type": "number",
+            "example": 500
+          }
+        },
+        "required": [
+          "fromKm",
+          "toKm",
+          "feeCents"
+        ]
+      },
+      "UpdateDeliveryConfigDto": {
+        "type": "object",
+        "properties": {
+          "deliveryEnabled": {
+            "type": "boolean"
+          },
+          "pickupEnabled": {
+            "type": "boolean"
+          },
+          "maxRadiusKm": {
+            "type": "number",
+            "example": 8
+          },
+          "feeMode": {
+            "type": "string",
+            "enum": [
+              "FLAT",
+              "ZONE"
+            ]
+          },
+          "flatFeeCents": {
+            "type": "number",
+            "example": 500
+          },
+          "estimatedMinutes": {
+            "type": "number",
+            "example": 40
+          },
+          "zones": {
+            "description": "When present, replaces every zone in the same request. Overlapping bands are rejected.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliveryZoneInputDto"
+            }
+          }
+        },
+        "required": [
+          "deliveryEnabled",
+          "pickupEnabled",
+          "maxRadiusKm",
+          "feeMode",
+          "flatFeeCents",
+          "estimatedMinutes"
+        ]
+      },
+      "DeliveryZoneResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fromKm": {
+            "type": "number"
+          },
+          "toKm": {
+            "type": "number"
+          },
+          "feeCents": {
+            "type": "number"
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "fromKm",
+          "toKm",
+          "feeCents",
+          "sortOrder"
+        ]
+      },
+      "DeliveryZoneListResponse": {
+        "type": "object",
+        "properties": {
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliveryZoneResponse"
+            }
+          }
+        },
+        "required": [
+          "zones"
+        ]
+      },
+      "ReplaceDeliveryZonesDto": {
+        "type": "object",
+        "properties": {
+          "zones": {
+            "description": "Replaces the full zone list. Single-zone changes use POST, PATCH and DELETE.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliveryZoneInputDto"
+            }
+          }
+        },
+        "required": [
+          "zones"
+        ]
+      },
+      "PatchDeliveryZoneDto": {
+        "type": "object",
+        "properties": {
+          "fromKm": {
+            "type": "number",
+            "example": 0
+          },
+          "toKm": {
+            "type": "number",
+            "example": 3
+          },
+          "feeCents": {
+            "type": "number",
+            "example": 500
+          }
+        }
+      },
+      "DeliveryAddressDto": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "example": "SP"
+          },
+          "postalCode": {
+            "type": "string",
+            "example": "01001000"
+          },
+          "complement": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "line",
+          "number",
+          "district",
+          "city",
+          "state",
+          "postalCode"
+        ]
+      },
+      "PublicDeliveryQuoteDto": {
+        "type": "object",
+        "properties": {
+          "fulfillment": {
+            "type": "string",
+            "enum": [
+              "DELIVERY",
+              "PICKUP"
+            ]
+          },
+          "address": {
+            "$ref": "#/components/schemas/DeliveryAddressDto"
+          }
+        }
+      },
+      "PublicDeliveryQuoteResponse": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          },
+          "fulfillment": {
+            "type": "string",
+            "enum": [
+              "DELIVERY",
+              "PICKUP"
+            ]
+          },
+          "distanceKm": {
+            "type": "number",
+            "nullable": true,
+            "example": 2.4
+          },
+          "feeCents": {
+            "type": "number",
+            "example": 500
+          },
+          "estimatedMinutes": {
+            "type": "number",
+            "nullable": true,
+            "example": 40
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          }
+        },
+        "required": [
+          "accepted",
+          "fulfillment",
+          "distanceKm",
+          "feeCents",
+          "estimatedMinutes",
+          "reason"
+        ]
+      },
+      "CourierResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "vehicleType": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "name",
+          "phone",
+          "email",
+          "status",
+          "active",
+          "vehicleType",
+          "notes"
+        ]
+      },
+      "CourierPageMeta": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ]
+      },
+      "CourierPageResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourierResponse"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/CourierPageMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "CreateCourierDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Lia Costa"
+          },
+          "phone": {
+            "type": "string",
+            "example": "11977776666"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "example": "lia@padaria.example"
+          },
+          "password": {
+            "type": "string"
+          },
+          "vehicleType": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE"
+            ],
+            "default": "AVAILABLE"
+          }
+        },
+        "required": [
+          "name",
+          "phone"
+        ]
+      },
+      "CreatedCourierResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "vehicleType": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "initialPassword": {
+            "type": "string",
+            "nullable": true,
+            "description": "Returned once when a login is created. It is not stored in clear text."
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "name",
+          "phone",
+          "email",
+          "status",
+          "active",
+          "vehicleType",
+          "notes",
+          "initialPassword"
+        ]
+      },
+      "UpdateCourierDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "vehicleType": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        }
       },
       "NotificationResponse": {
         "type": "object",

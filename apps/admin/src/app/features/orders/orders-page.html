@@ -72,6 +72,30 @@
               <button type="button" [disabled]="busyId() === order.id" (click)="completePickup(order)">
                 Marcar retirado
               </button>
+              } @if (canAssign(order)) {
+              <label>
+                Entregador
+                <select
+                  [value]="chosenCourier(order.id)"
+                  (change)="onCourierChange(order.id, $event)"
+                >
+                  <option value="">Escolher</option>
+                  @for (courier of couriers(); track courier.id) {
+                  <option [value]="courier.id">{{ courier.name }}</option>
+                  }
+                </select>
+              </label>
+              <button type="button" [disabled]="busyId() === order.id" (click)="assign(order)">
+                Atribuir
+              </button>
+              } @if (canDispatch(order)) {
+              <button type="button" [disabled]="busyId() === order.id" (click)="dispatch(order)">
+                Despachar
+              </button>
+              } @if (canDeliver(order)) {
+              <button type="button" [disabled]="busyId() === order.id" (click)="deliver(order)">
+                Concluir entrega
+              </button>
               } @if (canCancel(order)) {
               <button type="button" class="danger" [disabled]="busyId() === order.id" (click)="beginNote(order, 'cancel')">
                 Cancelar

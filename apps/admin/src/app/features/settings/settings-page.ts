@@ -17,6 +17,7 @@ import {
   imageUploadError,
   mediaUrl,
 } from '../../shared/image-file';
+import { DeliverySettingsSection } from './delivery-settings';
 import { centsToReais, reaisToCents } from './money';
 import { PaymentMethodsSection } from './payment-methods';
 
@@ -72,7 +73,7 @@ interface BusinessHour {
 
 @Component({
   selector: 'admin-settings-page',
-  imports: [ReactiveFormsModule, PaymentMethodsSection],
+  imports: [ReactiveFormsModule, DeliverySettingsSection, PaymentMethodsSection],
   templateUrl: './settings-page.html',
 })
 export class SettingsPage implements OnInit {
@@ -80,6 +81,7 @@ export class SettingsPage implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
   private readonly paymentMethods = viewChild(PaymentMethodsSection);
+  private readonly deliverySettings = viewChild(DeliverySettingsSection);
 
   readonly weekdays = WEEKDAYS;
   readonly loading = signal(true);
@@ -157,7 +159,9 @@ export class SettingsPage implements OnInit {
 
   hasUnsavedChanges(): boolean {
     return (
-      this.form.dirty || (this.paymentMethods()?.hasUnsavedChanges() ?? false)
+      this.form.dirty ||
+      (this.paymentMethods()?.hasUnsavedChanges() ?? false) ||
+      (this.deliverySettings()?.hasUnsavedChanges() ?? false)
     );
   }
 

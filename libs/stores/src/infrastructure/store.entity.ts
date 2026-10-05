@@ -86,40 +86,6 @@ export class StoreEntity {
   timezone!: string;
 
   @Column({
-    name: 'pickup_enabled',
-    type: 'tinyint',
-    width: 1,
-    default: 1,
-    transformer: {
-      to: (value: boolean): number => (value ? 1 : 0),
-      from: (value: number | boolean | null): boolean =>
-        value === true || value === 1,
-    },
-  })
-  pickupEnabled!: boolean;
-
-  @Column({
-    name: 'delivery_enabled',
-    type: 'tinyint',
-    width: 1,
-    default: 1,
-    transformer: {
-      to: (value: boolean): number => (value ? 1 : 0),
-      from: (value: number | boolean | null): boolean =>
-        value === true || value === 1,
-    },
-  })
-  deliveryEnabled!: boolean;
-
-  @Column({
-    name: 'delivery_flat_fee_cents',
-    type: 'int',
-    unsigned: true,
-    default: 0,
-  })
-  deliveryFlatFeeCents!: number;
-
-  @Column({
     name: 'estimated_prep_minutes',
     type: 'int',
     unsigned: true,

@@ -1,10 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import {
   APP_CONFIG,
+  AddressInput,
   AppConfig,
   DomainException,
+  GEOCODING,
+  GeocodingProvider,
   JsonLogger,
 } from '@ciadelivery/shared';
+import { CURRENT_STORE, CurrentStore } from '@ciadelivery/stores';
 import {
   CreateTenant,
   STORES,
@@ -103,6 +107,8 @@ export class DemoTenantSeed implements OnModuleInit {
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: UnitOfWork,
     @Inject(BRANDING) private readonly branding: BrandingRepository,
     @Inject(BUSINESS_HOURS) private readonly hours: BusinessHoursRepository,
+    @Inject(GEOCODING) private readonly geocoding: GeocodingProvider,
+    @Inject(CURRENT_STORE) private readonly currentStore: CurrentStore,
     private readonly createTenant: CreateTenant,
   ) {}
 
@@ -149,9 +155,30 @@ export class DemoTenantSeed implements OnModuleInit {
     if (store === null) {
       throw new Error(`Demo store for ${demo.slug} was not created`);
     }
+    await this.ensureOrigin(tenant.id, store.id, store.latitude, store.longitude, demo.address);
 
     await this.ensureOwner(tenant.id, store.id, demo.ownerName, email);
     await runWithTenant(tenant, () => this.ensurePresentation(demo, email));
+  }
+
+  private async ensureOrigin(
+    tenantId: string,
+    storeId: string,
+    latitude: number | null,
+    longitude: number | null,
+    address: AddressInput,
+  ): Promise<void> {
+    if (latitude !== null && longitude !== null) {
+      return;
+    }
+
+    const origin = await this.geocoding.geocode({ ...address, complement: null });
+    await this.currentStore.saveCoordinates({
+      tenantId,
+      storeId,
+      latitude: origin.latitude,
+      longitude: origin.longitude,
+    });
   }
 
   private async ensureOwner(

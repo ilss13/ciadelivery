@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { GEOCODING, GeocodingProvider } from '@ciadelivery/shared';
 import { TenancyCoreModule } from '@ciadelivery/tenancy/core';
 import { STORES } from '@ciadelivery/tenancy/domain';
 import { PermissionsGuard } from '@ciadelivery/users';
@@ -27,8 +28,9 @@ import { AdminStoreController } from './presentation/admin-store.controller';
     },
     {
       provide: UpdateStoreSettings,
-      useFactory: (stores: CurrentStore) => new UpdateStoreSettings(stores),
-      inject: [CURRENT_STORE],
+      useFactory: (stores: CurrentStore, geocoding: GeocodingProvider) =>
+        new UpdateStoreSettings(stores, geocoding),
+      inject: [CURRENT_STORE, GEOCODING],
     },
   ],
   exports: [STORES, CURRENT_STORE],

@@ -194,5 +194,6 @@ import { PlatformAdminSeed } from './seed-platform-admin';
       inject: [USERS, PASSWORD_HASHER, UNIT_OF_WORK],
     },
   ],
+  exports: [PASSWORD_HASHER],
 })
 export class AuthModule {}

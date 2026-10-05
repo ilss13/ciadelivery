@@ -105,7 +105,25 @@
     <h2>Revisão</h2>
     @if (reviewing()) {
     <p>Calculando a entrega…</p>
-    } @if (review(); as priced) {
+    }
+    @if (deliveryQuote(); as quoted) {
+      @if (form.controls.fulfillment.value === 'DELIVERY') {
+      <p>{{ addressSummary() }}</p>
+      @if (quoted.distanceKm !== null) {
+      <p>Distância aproximada {{ formatKm(quoted.distanceKm) }}</p>
+      }
+      @if (quoted.accepted && quoted.estimatedMinutes !== null) {
+      <p>Tempo estimado {{ quoted.estimatedMinutes }} min</p>
+      }
+      @if (!quoted.accepted) {
+      <p class="line-error">O endereço está fora da área de entrega.</p>
+      @if (options()?.pickupEnabled) {
+      <button type="button" (click)="switchToPickup()">Trocar para retirada</button>
+      }
+      }
+      }
+    }
+    @if (review(); as priced) {
     <ul class="cart-lines">
       @for (item of priced.items; track $index) {
       <li>
@@ -132,13 +150,15 @@
       <input type="checkbox" [formControl]="form.controls.marketing" />
       Quero receber ofertas desta loja (opcional).
     </label>
-    <button type="button" [disabled]="placing()" (click)="placeOrder()">
+    }
+    @if (deliveryQuote() !== null || review() !== null) {
+    <button type="button" [disabled]="!canPlace()" (click)="placeOrder()">
       {{ placing() ? 'Enviando…' : 'Fazer pedido' }}
     </button>
     }
     <div class="actions">
       <button type="button" class="secondary" (click)="back()">Voltar</button>
-      @if (!reviewing() && review() === null) {
+      @if (!reviewing() && review() === null && deliveryQuote() === null) {
       <button type="button" (click)="loadReview()">Tentar de novo</button>
       }
     </div>

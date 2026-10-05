@@ -1,0 +1,32 @@
+<p><a routerLink="/">Voltar</a></p>
+<h1>Entrega</h1>
+@if (!online()) {
+<p class="error" role="alert">Sem conexão. A entrega não foi marcada.</p>
+} @if (loading()) {
+<p>Carregando…</p>
+} @else if (order(); as current) {
+<article class="card">
+  <strong>Pedido {{ current.orderNumber }}</strong>
+  <span>{{ money(current.totalCents) }}</span>
+  <span>{{ address(current) }}</span>
+  @if (current.customerPhone) {
+  <a [href]="'tel:' + current.customerPhone">{{ current.customerPhone }}</a>
+  }
+</article>
+@if (error()) {
+<p class="error" role="alert">{{ error() }}</p>
+}
+<div class="actions">
+  @if (current.status === 'READY') {
+  <button type="button" [disabled]="busy() || !online()" (click)="start()">
+    Sair para entrega
+  </button>
+  } @if (current.status === 'OUT_FOR_DELIVERY') {
+  <button type="button" [disabled]="busy() || !online()" (click)="complete()">
+    Entrega concluída
+  </button>
+  }
+</div>
+} @else {
+<p class="error" role="alert">{{ error() || 'Entrega não encontrada.' }}</p>
+}

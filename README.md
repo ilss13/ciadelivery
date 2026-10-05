@@ -54,7 +54,17 @@ O servidor de desenvolvimento do storefront libera esses hosts. A API lê o host
 http://pizzariadoze.localhost:4201,http://burgercentral.localhost:4201
 ```
 
-O painel fica em http://localhost:4202/login. Os donos de demonstração são `pizzariadoze-owner@example.com` e `burgercentral-owner@example.com`, com a senha de `DEMO_OWNER_PASSWORD`. O entregador entra em http://localhost:4203/login.
+O painel fica em http://localhost:4202/login. Os donos de demonstração são `pizzariadoze-owner@example.com` e `burgercentral-owner@example.com`, com a senha de `DEMO_OWNER_PASSWORD`. O entregador da pizzaria é `pizzariadoze-courier@example.com`, com a mesma senha, e entra em http://localhost:4203/login. O seed não cria pedido atribuído: a lista abre com “Nenhuma entrega atribuída”.
+
+O e2e do entregador usa viewport de celular. Ele não sobe os servidores: a API (com `SEED_DEMO=true`) e o app courier precisam estar no ar.
+
+```bash
+npm run start:api
+npm run start:courier
+npx nx e2e courier-e2e
+```
+
+Com `GEOCODING_DRIVER=stub` (o padrão), o checkout não chama um mapa externo. O stub transforma o CEP em uma coordenada estável numa caixa de cerca de 2 km ao redor da origem de demonstração `-23.550520, -46.633308` (Praça da Sé, São Paulo). O CEP `99999-999` fica cerca de 22 km ao norte dessa origem, fora do raio padrão de 8 km, para o cardápio mostrar endereço fora da área. Com `GEOCODING_DRIVER=http`, a API faz `GET` em `GEOCODING_URL` e espera JSON `{ "latitude", "longitude" }`.
 
 O e2e do cardápio compara o nome e a variável `--brand-primary` nos dois hosts. Ele não sobe os servidores: a API (com `SEED_DEMO=true`) e o storefront precisam estar no ar. Se a API estiver fora, o teste falha com essa mensagem em vez de passar vazio.
 

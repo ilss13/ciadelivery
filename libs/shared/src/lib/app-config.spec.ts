@@ -57,6 +57,8 @@ describe('loadAppConfig', () => {
       s3AccessKey: '',
       s3SecretKey: '',
       s3Region: '',
+      geocodingDriver: 'stub',
+      geocodingUrl: '',
     });
   });
 
@@ -79,6 +81,19 @@ describe('loadAppConfig', () => {
         S3_REGION: 'us-east-1',
       }).storageDriver,
     ).toBe('s3');
+  });
+
+  it('requires the geocoding URL only when the http driver is selected', () => {
+    expect(() =>
+      loadAppConfig({ ...validEnv, GEOCODING_DRIVER: 'http' }),
+    ).toThrow('GEOCODING_URL');
+    expect(
+      loadAppConfig({
+        ...validEnv,
+        GEOCODING_DRIVER: 'http',
+        GEOCODING_URL: 'http://geocode.internal/lookup',
+      }).geocodingDriver,
+    ).toBe('http');
   });
 
   it('uses DATABASE_POOL_SIZE when it is set', () => {

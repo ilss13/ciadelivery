@@ -1,8 +1,14 @@
-import { DomainException } from '@ciadelivery/shared';
+import {
+  AddressInput,
+  DomainException,
+  GeocodingProvider,
+} from '@ciadelivery/shared';
 import { currentTenant } from '@ciadelivery/tenancy/domain';
 import { RequestActor } from '@ciadelivery/users';
 import {
   CurrentStore,
+  StoreAddress,
+  StoreCoordinates,
   StoreProfileUpdate,
   StoreRecord,
   StoreSettings,
@@ -36,14 +42,31 @@ export class GetStoreSettings {
 }
 
 export class UpdateStoreSettings {
-  constructor(private readonly stores: CurrentStore) {}
+  constructor(
+    private readonly stores: CurrentStore,
+    private readonly geocoding: GeocodingProvider,
+  ) {}
 
   async execute(
     actor: RequestActor,
     patch: StoreProfileUpdate,
   ): Promise<StoreSettings> {
     assertStoreActor(actor);
-    const updated = await this.stores.updateForCurrentTenant(patch);
+    const current = await this.stores.findForCurrentTenant();
+    if (
+      current === null ||
+      current.tenantId !== actor.tenantId ||
+      current.id !== actor.storeId
+    ) {
+      throw new DomainException(
+        'STORE_NOT_FOUND',
+        'The store was not found',
+        404,
+      );
+    }
+
+    const coordinates = await this.coordinatesFor(current, patch.address);
+    const updated = await this.stores.updateForCurrentTenant(patch, coordinates);
     if (updated.tenantId !== actor.tenantId || updated.id !== actor.storeId) {
       throw new DomainException(
         'STORE_NOT_FOUND',
@@ -54,6 +77,44 @@ export class UpdateStoreSettings {
 
     return toStoreSettings(updated);
   }
+
+  private async coordinatesFor(
+    current: StoreRecord,
+    address: StoreAddress,
+  ): Promise<StoreCoordinates> {
+    if (
+      current.latitude !== null &&
+      current.longitude !== null &&
+      sameAddress(current.address, address)
+    ) {
+      return { latitude: current.latitude, longitude: current.longitude };
+    }
+
+    return this.geocoding.geocode(toAddressInput(address));
+  }
+}
+
+function toAddressInput(address: StoreAddress): AddressInput {
+  return {
+    line: address.line,
+    number: address.number,
+    district: address.district,
+    city: address.city,
+    state: address.state,
+    postalCode: address.postalCode,
+    complement: null,
+  };
+}
+
+function sameAddress(current: StoreAddress, next: StoreAddress): boolean {
+  return (
+    current.line === next.line &&
+    current.number === next.number &&
+    current.district === next.district &&
+    current.city === next.city &&
+    current.state === next.state &&
+    current.postalCode === next.postalCode
+  );
 }
 
 function assertStoreActor(actor: RequestActor): void {

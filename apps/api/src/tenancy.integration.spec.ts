@@ -71,6 +71,14 @@ describe('tenant and store context', () => {
           createdIds,
         );
         await dataSource.query(
+          `DELETE FROM delivery_zones WHERE tenant_id IN (${marks})`,
+          createdIds,
+        );
+        await dataSource.query(
+          `DELETE FROM delivery_configs WHERE tenant_id IN (${marks})`,
+          createdIds,
+        );
+        await dataSource.query(
           `DELETE FROM stores WHERE tenant_id IN (${marks})`,
           createdIds,
         );

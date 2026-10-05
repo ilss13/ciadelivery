@@ -52,6 +52,7 @@ describe('CheckoutPage', () => {
     click(fixture, 'Continuar');
     click(fixture, 'Continuar');
 
+    flushQuote(http, fixture);
     const review = http.expectOne((call) => call.url.endsWith('/api/v1/public/orders/review'));
     expect(review.request.body.paymentMethodCode).toBe('CASH');
     review.flush({
@@ -72,6 +73,9 @@ describe('CheckoutPage', () => {
     });
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.textContent).toContain('Rua A, 10, Centro, São Paulo');
+    expect(fixture.nativeElement.textContent).toContain('Distância aproximada 2,4 km');
+    expect(fixture.nativeElement.textContent).toContain('Tempo estimado 40 min');
     expect(fixture.nativeElement.textContent).toContain('Taxa de entrega R$ 6,50');
     expect(fixture.nativeElement.textContent).toContain('Total R$ 64,40');
 
@@ -139,6 +143,7 @@ describe('CheckoutPage', () => {
     fill(fixture, 'postalCode', '01001000');
     click(fixture, 'Continuar');
     click(fixture, 'Continuar');
+    flushQuote(http, fixture);
     http.expectOne((call) => call.url.endsWith('/orders/review')).flush({
       items: [],
       subtotalCents: 4990,
@@ -179,6 +184,56 @@ describe('CheckoutPage', () => {
     );
     http.verify();
   });
+
+  it('disables checkout when the address is outside the delivery area', async () => {
+    const fixture = await create();
+    const http = TestBed.inject(HttpTestingController);
+    flushOpening(http);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    TestBed.inject(CartStore).add({
+      productId: '11111111-1111-4111-8111-111111111111',
+      name: 'Calabresa',
+      quantity: 1,
+      unitPriceCents: 4990,
+      options: [],
+      notes: '',
+    });
+    fixture.detectChanges();
+    fill(fixture, 'name', 'Ana');
+    fill(fixture, 'phone', '11988887777');
+    click(fixture, 'Continuar');
+    click(fixture, 'Continuar');
+    fill(fixture, 'line', 'Rua Longe');
+    fill(fixture, 'number', '900');
+    fill(fixture, 'district', 'Centro');
+    fill(fixture, 'city', 'São Paulo');
+    fill(fixture, 'state', 'SP');
+    fill(fixture, 'postalCode', '99999999');
+    click(fixture, 'Continuar');
+    click(fixture, 'Continuar');
+    const quote = http.expectOne((call) => call.url.endsWith('/api/v1/public/delivery/quote'));
+    quote.flush({
+      accepted: false,
+      fulfillment: 'DELIVERY',
+      distanceKm: 22,
+      feeCents: 0,
+      estimatedMinutes: 40,
+      reason: 'OUT_OF_AREA',
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain(
+      'O endereço está fora da área de entrega.',
+    );
+    expect(fixture.nativeElement.textContent).toContain('Trocar para retirada');
+    const submit = [...fixture.nativeElement.querySelectorAll('button')].find((button) =>
+      button.textContent?.includes('Fazer pedido'),
+    ) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    http.expectNone((call) => call.url.endsWith('/orders/review'));
+    http.verify();
+  });
 });
 
 async function create() {
@@ -193,6 +248,22 @@ async function create() {
   const fixture = TestBed.createComponent(CheckoutPage);
   fixture.detectChanges();
   return fixture;
+}
+
+function flushQuote(
+  http: HttpTestingController,
+  fixture: { detectChanges(): void },
+): void {
+  const quote = http.expectOne((call) => call.url.endsWith('/api/v1/public/delivery/quote'));
+  quote.flush({
+    accepted: true,
+    fulfillment: 'DELIVERY',
+    distanceKm: 2.4,
+    feeCents: 650,
+    estimatedMinutes: 40,
+    reason: null,
+  });
+  fixture.detectChanges();
 }
 
 function flushOpening(http: HttpTestingController): void {

@@ -8,6 +8,7 @@
   "dependencies": {
     "@ciadelivery/catalog": "0.0.1",
     "@ciadelivery/customers": "0.0.1",
+    "@ciadelivery/delivery": "0.0.1",
     "@ciadelivery/shared": "0.0.1",
     "@ciadelivery/stores": "0.0.1",
     "@ciadelivery/tenancy": "0.0.1",

@@ -56,18 +56,20 @@ describe('realtime rooms', () => {
     ).toBeNull();
   });
 
-  it('keeps couriers out of the store room', () => {
+  it('keeps couriers out of the store room and in their own room', () => {
     expect(
       roomsForStaff({
         role: 'COURIER',
+        userId: 'user-1',
         tenantId,
         storeId,
         permissions: ['orders.read'],
       }),
-    ).toEqual([`tenant:${tenantId}`]);
+    ).toEqual([`tenant:${tenantId}`, 'courier:user-1']);
     expect(
       roomsForStaff({
         role: 'KITCHEN',
+        userId: 'user-2',
         tenantId,
         storeId,
         permissions: ['orders.read'],
@@ -76,6 +78,7 @@ describe('realtime rooms', () => {
     expect(
       roomsForStaff({
         role: 'ATTENDANT',
+        userId: 'user-3',
         tenantId,
         storeId,
         permissions: ['orders.read'],
@@ -84,11 +87,39 @@ describe('realtime rooms', () => {
     expect(
       roomsForStaff({
         role: 'OWNER',
+        userId: 'user-4',
         tenantId,
         storeId,
         permissions: ['catalog.manage'],
       }),
     ).toEqual([]);
+  });
+
+  it('also sends assignment events to the courier room', () => {
+    const assigned = orderRealtimeDispatch({
+      type: 'order.courier_assigned',
+      payload: { ...payload, status: 'READY', courierUserId: 'user-1' },
+    });
+    expect(assigned?.rooms).toEqual([
+      `store:${storeId}`,
+      `order:${orderId}`,
+      'courier:user-1',
+    ]);
+    const dispatched = orderRealtimeDispatch({
+      type: 'order.out_for_delivery',
+      payload: {
+        ...payload,
+        status: 'OUT_FOR_DELIVERY',
+        courierUserId: 'user-1',
+      },
+    });
+    expect(dispatched?.rooms).toEqual([
+      `store:${storeId}`,
+      `order:${orderId}`,
+      'courier:user-1',
+    ]);
+    expect(decideRoomJoin(['courier:user-1'], 'courier:user-1')).toBe('join');
+    expect(decideRoomJoin(['courier:user-1'], 'courier:user-2')).toBe('ignore');
   });
 
   it('ignores a room the connection was not granted', () => {

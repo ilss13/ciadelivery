@@ -18,7 +18,14 @@ export type OrderAction =
   | 'start-preparation'
   | 'ready'
   | 'cancel'
-  | 'complete-pickup';
+  | 'complete-pickup'
+  | 'dispatch'
+  | 'deliver';
+
+export interface CourierOption {
+  id: string;
+  name: string;
+}
 
 export type OrderBoardMessage =
   | { kind: 'event'; event: OrderRealtimeEvent }
@@ -33,6 +40,8 @@ export interface OrdersBoardStore {
     action: OrderAction,
     note: string | null,
   ): Observable<OrderCard>;
+  listCouriers(): Observable<CourierOption[]>;
+  assign(orderId: string, courierId: string): Observable<OrderCard>;
 }
 
 export const ORDERS_BOARD_STORE = new InjectionToken<OrdersBoardStore>(
@@ -42,6 +51,10 @@ export const ORDERS_BOARD_STORE = new InjectionToken<OrdersBoardStore>(
 interface OrderPage {
   data: OrderPayload[];
   meta: { page: number; totalPages: number };
+}
+
+interface CourierPage {
+  data: Array<{ id: string; name: string }>;
 }
 
 interface OrderPayload {
@@ -61,6 +74,8 @@ const REALTIME_EVENTS = [
   'order.rejected',
   'order.in_preparation',
   'order.ready',
+  'order.courier_assigned',
+  'order.out_for_delivery',
   'order.delivered',
   'order.cancelled',
 ] as const;
@@ -128,6 +143,29 @@ export class HttpOrdersBoardStore implements OrdersBoardStore {
   ): Observable<OrderCard> {
     return this.http
       .post<OrderPayload>(apiUrl(`/api/v1/admin/orders/${id}/${action}`), note === null ? {} : { note })
+      .pipe(map(toCard));
+  }
+
+  listCouriers(): Observable<CourierOption[]> {
+    return this.http
+      .get<CourierPage>(apiUrl('/api/v1/admin/couriers'), {
+        params: {
+          page: '1',
+          pageSize: '100',
+          active: 'true',
+          status: 'AVAILABLE',
+        },
+      })
+      .pipe(
+        map((page) => page.data.map((courier) => ({ id: courier.id, name: courier.name }))),
+      );
+  }
+
+  assign(orderId: string, courierId: string): Observable<OrderCard> {
+    return this.http
+      .post<OrderPayload>(apiUrl(`/api/v1/admin/orders/${orderId}/assign-courier`), {
+        courierId,
+      })
       .pipe(map(toCard));
   }
 

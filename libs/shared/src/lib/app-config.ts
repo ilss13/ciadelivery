@@ -40,6 +40,8 @@ export interface AppConfig {
   s3AccessKey: string;
   s3SecretKey: string;
   s3Region: string;
+  geocodingDriver: 'stub' | 'http';
+  geocodingUrl: string;
 }
 
 export const APP_CONFIG = Symbol('APP_CONFIG');
@@ -246,6 +248,7 @@ export function loadAppConfig(env: Env = process.env): AppConfig {
     seedDemo,
     demoOwnerPassword,
     ...storageConfig(env, apiPort),
+    ...geocodingConfig(env),
   };
 }
 
@@ -315,6 +318,23 @@ function storageConfig(
     s3SecretKey,
     s3Region,
   };
+}
+
+function geocodingConfig(
+  env: Env,
+): Pick<AppConfig, 'geocodingDriver' | 'geocodingUrl'> {
+  const driverValue = env['GEOCODING_DRIVER']?.trim() ?? '';
+  const geocodingDriver = driverValue.length === 0 ? 'stub' : driverValue;
+  if (geocodingDriver !== 'stub' && geocodingDriver !== 'http') {
+    throw new Error('Invalid GEOCODING_DRIVER: expected stub or http');
+  }
+
+  const geocodingUrl = env['GEOCODING_URL']?.trim() ?? '';
+  if (geocodingDriver === 'http' && geocodingUrl.length === 0) {
+    throw new Error('Missing required environment variables: GEOCODING_URL');
+  }
+
+  return { geocodingDriver, geocodingUrl };
 }
 
 function parseStoreTimezone(value: string | undefined): string {

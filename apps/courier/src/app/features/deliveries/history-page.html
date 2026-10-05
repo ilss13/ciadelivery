@@ -1,0 +1,28 @@
+<p><a routerLink="/">Voltar</a></p>
+<h1>Histórico</h1>
+<p class="muted">Entregas dos últimos 30 dias.</p>
+@if (loading()) {
+<p>Carregando…</p>
+} @else if (error()) {
+<p class="error" role="alert">{{ error() }}</p>
+} @else if (orders().length === 0) {
+<p class="muted">Nenhuma entrega concluída neste período.</p>
+} @else {
+<ul class="list">
+  @for (order of orders(); track order.id) {
+  <li class="card">
+    <strong>Pedido {{ order.orderNumber }}</strong>
+    <span>{{ money(order.totalCents) }}</span>
+    <span>{{ address(order) }}</span>
+  </li>
+  }
+</ul>
+<div class="actions">
+  <button type="button" class="secondary" [disabled]="page() <= 1" (click)="previous()">
+    Anterior
+  </button>
+  <button type="button" class="secondary" [disabled]="page() >= totalPages()" (click)="next()">
+    Próxima
+  </button>
+</div>
+}

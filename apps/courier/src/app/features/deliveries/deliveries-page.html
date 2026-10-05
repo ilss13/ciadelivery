@@ -1,0 +1,37 @@
+<header class="row">
+  <h1>Entregas</h1>
+  <a routerLink="/history">Histórico</a>
+  <button type="button" class="secondary" (click)="logout()">Sair</button>
+</header>
+@if (user()?.role !== 'COURIER') {
+<p>Esta entrada é só para quem faz as entregas.</p>
+} @else if (!online()) {
+<p class="error" role="alert">Sem conexão. A entrega não foi marcada.</p>
+} @if (user()?.role === 'COURIER') {
+@if (loading()) {
+<p>Carregando…</p>
+} @else if (error() && orders().length === 0) {
+<p class="error" role="alert">{{ error() }}</p>
+<button type="button" (click)="reload()">Tentar de novo</button>
+} @else {
+@if (error()) {
+<p class="error" role="alert">{{ error() }}</p>
+}
+@if (orders().length === 0) {
+<p class="muted">Nenhuma entrega atribuída.</p>
+} @else {
+<ul class="list">
+  @for (order of orders(); track order.id) {
+  <li>
+    <a class="card" [routerLink]="['/orders', order.id]">
+      <strong>Pedido {{ order.orderNumber }}</strong>
+      <span>{{ statusLabel(order.status) }}</span>
+      <span>{{ money(order.totalCents) }}</span>
+      <span>{{ address(order) }}</span>
+    </a>
+  </li>
+  }
+</ul>
+}
+}
+}

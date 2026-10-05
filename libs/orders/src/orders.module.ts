@@ -2,6 +2,16 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CatalogModule, ValidatePublicCart } from '@ciadelivery/catalog';
 import { CUSTOMERS, CustomerRepository, CustomersModule } from '@ciadelivery/customers';
+import {
+  ASSIGNMENTS,
+  Assignments,
+  COURIERS,
+  Couriers,
+  DELIVERY_POLICIES,
+  DeliveryModule,
+  DeliveryPolicies,
+} from '@ciadelivery/delivery';
+import { GEOCODING, GeocodingProvider } from '@ciadelivery/shared';
 import { CURRENT_STORE, CurrentStore, StoresModule } from '@ciadelivery/stores';
 import {
   SuperAdminGuard,
@@ -11,15 +21,19 @@ import {
 } from '@ciadelivery/tenancy';
 import { PermissionsGuard } from '@ciadelivery/users';
 import { AdminOrders } from './application/admin-orders';
+import { AdvanceDelivery } from './application/advance-delivery';
+import { AssignCourier } from './application/assign-courier';
+import { CourierOrders } from './application/courier-orders';
 import { CreatePublicOrder } from './application/create-public-order';
 import { GetPublicCheckout } from './application/get-public-checkout';
 import { GetPublicOrder } from './application/get-public-order';
 import { RequeueOutbox } from './application/requeue-outbox';
 import { ReviewPublicOrder } from './application/review-public-order';
 import { TransitionAdminOrder } from './application/transition-admin-order';
+import { ConfiguredDeliveryQuote } from './domain/configured-delivery-quote';
 import { DELIVERY_QUOTE, DeliveryQuotePort } from './domain/delivery-quote';
+import { COURIER_ORDERS, CourierOrderReader } from './domain/courier-order-reader';
 import { DOMAIN_EVENTS, DomainEventPublisher } from './domain/domain-event';
-import { FlatDeliveryQuote } from './domain/flat-delivery-quote';
 import { ORDERS, OrderRepository } from './domain/order-repository';
 import { OUTBOX_STORE, OutboxStore } from './domain/outbox';
 import {
@@ -30,9 +44,11 @@ import {
 } from './infrastructure/order.entities';
 import { OutboxDomainEventPublisher } from './infrastructure/outbox-domain-event-publisher';
 import { OutboxEventEntity } from './infrastructure/outbox.entities';
+import { TypeOrmCourierOrders } from './infrastructure/typeorm-courier-orders';
 import { TypeOrmOrders } from './infrastructure/typeorm-orders';
 import { TypeOrmOutbox } from './infrastructure/typeorm-outbox';
 import { AdminOrdersController } from './presentation/admin-orders.controller';
+import { CourierOrdersController } from './presentation/courier-orders.controller';
 import { PlatformOutboxController } from './presentation/platform-outbox.controller';
 import { PublicCheckoutController } from './presentation/public-checkout.controller';
 import { PublicOrdersController } from './presentation/public-orders.controller';
@@ -43,6 +59,7 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
     StoresModule,
     CatalogModule,
     CustomersModule,
+    DeliveryModule,
     TypeOrmModule.forFeature([
       OrderEntity,
       OrderItemEntity,
@@ -55,6 +72,7 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
     PublicOrdersController,
     PublicCheckoutController,
     AdminOrdersController,
+    CourierOrdersController,
     PlatformOutboxController,
   ],
   providers: [
@@ -62,19 +80,24 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
     SuperAdminGuard,
     TypeOrmOrders,
     { provide: ORDERS, useExisting: TypeOrmOrders },
+    TypeOrmCourierOrders,
+    { provide: COURIER_ORDERS, useExisting: TypeOrmCourierOrders },
     TypeOrmOutbox,
     { provide: OUTBOX_STORE, useExisting: TypeOrmOutbox },
     OutboxDomainEventPublisher,
     { provide: DOMAIN_EVENTS, useExisting: OutboxDomainEventPublisher },
     {
       provide: DELIVERY_QUOTE,
-      useFactory: () => new FlatDeliveryQuote(),
+      useFactory: (geocoding: GeocodingProvider) =>
+        new ConfiguredDeliveryQuote(geocoding),
+      inject: [GEOCODING],
     },
     {
       provide: CreatePublicOrder,
       useFactory: (
         customers: CustomerRepository,
         stores: CurrentStore,
+        policies: DeliveryPolicies,
         carts: ValidatePublicCart,
         quotes: DeliveryQuotePort,
         orders: OrderRepository,
@@ -84,6 +107,7 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
         new CreatePublicOrder(
           customers,
           stores,
+          policies,
           carts,
           quotes,
           orders,
@@ -93,6 +117,7 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
       inject: [
         CUSTOMERS,
         CURRENT_STORE,
+        DELIVERY_POLICIES,
         ValidatePublicCart,
         DELIVERY_QUOTE,
         ORDERS,
@@ -110,16 +135,26 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
       useFactory: (
         customers: CustomerRepository,
         stores: CurrentStore,
+        policies: DeliveryPolicies,
         carts: ValidatePublicCart,
         quotes: DeliveryQuotePort,
-      ) => new ReviewPublicOrder(customers, stores, carts, quotes),
-      inject: [CUSTOMERS, CURRENT_STORE, ValidatePublicCart, DELIVERY_QUOTE],
+      ) => new ReviewPublicOrder(customers, stores, policies, carts, quotes),
+      inject: [
+        CUSTOMERS,
+        CURRENT_STORE,
+        DELIVERY_POLICIES,
+        ValidatePublicCart,
+        DELIVERY_QUOTE,
+      ],
     },
     {
       provide: GetPublicCheckout,
-      useFactory: (customers: CustomerRepository, stores: CurrentStore) =>
-        new GetPublicCheckout(customers, stores),
-      inject: [CUSTOMERS, CURRENT_STORE],
+      useFactory: (
+        customers: CustomerRepository,
+        stores: CurrentStore,
+        policies: DeliveryPolicies,
+      ) => new GetPublicCheckout(customers, stores, policies),
+      inject: [CUSTOMERS, CURRENT_STORE, DELIVERY_POLICIES],
     },
     {
       provide: AdminOrders,
@@ -136,6 +171,53 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
         unitOfWork: UnitOfWork,
       ) => new TransitionAdminOrder(orders, stores, events, unitOfWork),
       inject: [ORDERS, CURRENT_STORE, DOMAIN_EVENTS, UNIT_OF_WORK],
+    },
+    {
+      provide: AssignCourier,
+      useFactory: (
+        orders: OrderRepository,
+        couriers: Couriers,
+        assignments: Assignments,
+        stores: CurrentStore,
+        events: DomainEventPublisher,
+        unitOfWork: UnitOfWork,
+      ) =>
+        new AssignCourier(
+          orders,
+          couriers,
+          assignments,
+          stores,
+          events,
+          unitOfWork,
+        ),
+      inject: [
+        ORDERS,
+        COURIERS,
+        ASSIGNMENTS,
+        CURRENT_STORE,
+        DOMAIN_EVENTS,
+        UNIT_OF_WORK,
+      ],
+    },
+    {
+      provide: AdvanceDelivery,
+      useFactory: (
+        orders: OrderRepository,
+        assignments: Assignments,
+        stores: CurrentStore,
+        events: DomainEventPublisher,
+        unitOfWork: UnitOfWork,
+      ) => new AdvanceDelivery(orders, assignments, stores, events, unitOfWork),
+      inject: [ORDERS, ASSIGNMENTS, CURRENT_STORE, DOMAIN_EVENTS, UNIT_OF_WORK],
+    },
+    {
+      provide: CourierOrders,
+      useFactory: (
+        orders: CourierOrderReader,
+        advance: AdvanceDelivery,
+        stores: CurrentStore,
+      ) => new CourierOrders(orders, advance, stores),
+      inject: [COURIER_ORDERS, AdvanceDelivery, CURRENT_STORE],
     },
     {
       provide: RequeueOutbox,

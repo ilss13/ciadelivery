@@ -134,6 +134,14 @@ describe('phase 1 acceptance', () => {
           createdTenantIds,
         );
         await dataSource.query(
+          `DELETE FROM delivery_zones WHERE tenant_id IN (${marks})`,
+          createdTenantIds,
+        );
+        await dataSource.query(
+          `DELETE FROM delivery_configs WHERE tenant_id IN (${marks})`,
+          createdTenantIds,
+        );
+        await dataSource.query(
           `DELETE FROM stores WHERE tenant_id IN (${marks})`,
           createdTenantIds,
         );

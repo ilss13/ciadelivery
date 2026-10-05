@@ -4,7 +4,7 @@ const STATUS_LABELS: Record<string, string> = {
   IN_PREPARATION: 'Em preparação',
   READY: 'Pronto',
   OUT_FOR_DELIVERY: 'Saiu para entrega',
-  DELIVERED: 'Entregue',
+  DELIVERED: 'Pedido entregue',
   REJECTED: 'Recusado',
   CANCELLED: 'Cancelado',
 };

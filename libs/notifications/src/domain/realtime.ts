@@ -7,6 +7,8 @@ export const ORDER_REALTIME_TYPES = [
   'order.rejected',
   'order.in_preparation',
   'order.ready',
+  'order.courier_assigned',
+  'order.out_for_delivery',
   'order.delivered',
   'order.cancelled',
 ] as const;
@@ -35,6 +37,7 @@ export interface RealtimeEnvelope {
 
 export interface StaffRoomClaims {
   role: string;
+  userId: string;
   tenantId: string | null;
   storeId: string | null;
   permissions: readonly string[];
@@ -44,7 +47,11 @@ export type RealtimeCredentials =
   | { kind: 'staff'; token: string }
   | { kind: 'customer'; trackingToken: string };
 
-const ROOM_PREFIX = /^(tenant|store|order):/;
+const ROOM_PREFIX = /^(tenant|store|order|courier):/;
+const COURIER_ROOM_EVENTS = new Set<OrderRealtimeType>([
+  'order.courier_assigned',
+  'order.out_for_delivery',
+]);
 
 export function isOrderRealtimeType(type: string): type is OrderRealtimeType {
   return (ORDER_REALTIME_TYPES as readonly string[]).includes(type);
@@ -65,6 +72,9 @@ export function roomsForStaff(claims: StaffRoomClaims): string[] {
     claims.storeId.length > 0
   ) {
     rooms.push(`store:${claims.storeId}`);
+  }
+  if (claims.role === 'COURIER' && claims.userId.length > 0) {
+    rooms.push(`courier:${claims.userId}`);
   }
   return rooms;
 }
@@ -106,6 +116,10 @@ export function orderRealtimeDispatch(input: {
     input.type === 'order.created'
       ? [`store:${storeId}`]
       : [`store:${storeId}`, `order:${orderId}`];
+  const courierUserId = readText(input.payload['courierUserId']);
+  if (courierUserId !== null && COURIER_ROOM_EVENTS.has(input.type)) {
+    rooms.push(`courier:${courierUserId}`);
+  }
 
   return {
     event: input.type,

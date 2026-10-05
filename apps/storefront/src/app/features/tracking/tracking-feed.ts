@@ -20,6 +20,7 @@ const REALTIME_EVENTS = [
   'order.rejected',
   'order.in_preparation',
   'order.ready',
+  'order.out_for_delivery',
   'order.delivered',
   'order.cancelled',
 ] as const;
