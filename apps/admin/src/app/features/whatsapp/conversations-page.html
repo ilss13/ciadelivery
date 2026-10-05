@@ -1,0 +1,73 @@
+<section class="whatsapp" [class.has-selection]="selected() !== null">
+  <div class="conversation-list">
+    <h1>Conversas</h1>
+    @if (loading()) {
+      <p class="muted">Carregando...</p>
+    } @else if (error()) {
+      <p class="error">{{ error() }}</p>
+      <button type="button" (click)="reload()">Tentar de novo</button>
+    } @else if (conversations().length === 0) {
+      <p>Nenhuma conversa</p>
+    } @else {
+      <ul class="list">
+        @for (conversation of conversations(); track conversation.id) {
+          <li>
+            <button
+              type="button"
+              class="secondary item"
+              [attr.aria-current]="selected()?.id === conversation.id ? 'true' : null"
+              (click)="open(conversation.id)"
+            >
+              <strong>{{ conversation.contactName ?? conversation.maskedPhone }}</strong>
+              <span class="muted">{{ conversation.maskedPhone }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <div class="conversation-thread">
+    @if (selected(); as current) {
+      <button type="button" class="secondary back" (click)="back()">Voltar</button>
+      <h2>{{ current.contactName ?? current.contactPhone }}</h2>
+      <p class="muted">{{ current.contactPhone }}</p>
+      <div class="thread" aria-live="polite">
+        @for (message of messages(); track message.id) {
+          <article
+            class="bubble"
+            [class.out]="message.direction === 'OUT' && message.author !== 'SYSTEM'"
+            [class.system]="message.author === 'SYSTEM'"
+          >
+            <p class="muted">{{ authorLabel(message.author) }}</p>
+            <p>{{ message.body }}</p>
+          </article>
+        }
+      </div>
+      @if (current.mode === 'CLOSED') {
+        <p class="muted">Conversa encerrada.</p>
+      } @else {
+        <label>
+          Resposta
+          <textarea
+            [value]="draft()"
+            maxlength="1000"
+            rows="3"
+            (input)="onDraft($any($event.target).value)"
+          ></textarea>
+        </label>
+        <div class="actions">
+          <button type="button" [disabled]="sending() || draft().trim().length === 0" (click)="send()">
+            Enviar
+          </button>
+          <button type="button" class="danger" (click)="close()">Encerrar</button>
+        </div>
+      }
+      @if (threadError()) {
+        <p class="error">{{ threadError() }}</p>
+      }
+    } @else {
+      <p class="muted">Escolha uma conversa para responder.</p>
+    }
+  </div>
+</section>

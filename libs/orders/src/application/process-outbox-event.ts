@@ -11,7 +11,7 @@ export class ProcessOutboxEvent {
 
   constructor(
     private readonly outbox: OutboxStore,
-    private readonly handlers: readonly OutboxHandler[],
+    private readonly handlers: () => readonly OutboxHandler[],
     private readonly backoffMs: (attempt: number) => number,
   ) {}
 
@@ -22,7 +22,7 @@ export class ProcessOutboxEvent {
     }
 
     try {
-      for (const handler of this.handlers) {
+      for (const handler of this.handlers()) {
         if (!handler.supports(event.type)) {
           continue;
         }

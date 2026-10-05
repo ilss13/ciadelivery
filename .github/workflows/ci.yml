@@ -64,6 +64,7 @@ jobs:
       PLATFORM_DOMAIN: localhost
       JWT_ACCESS_SECRET: local-development-jwt-access-secret
       CORS_ORIGINS: http://localhost:4200,http://localhost:4201,http://localhost:4202,http://localhost:4203
+      CREDENTIALS_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
     services:
       mysql:
         image: mysql:8
@@ -193,6 +194,7 @@ jobs:
       PLATFORM_DOMAIN: localhost
       JWT_ACCESS_SECRET: local-development-jwt-access-secret
       CORS_ORIGINS: http://localhost:4200
+      CREDENTIALS_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
     services:
       mysql:
         image: mysql:8

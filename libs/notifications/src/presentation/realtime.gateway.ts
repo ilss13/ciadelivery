@@ -11,7 +11,11 @@ import { HttpAdapterHost } from '@nestjs/core';
 import { Server, Socket } from 'socket.io';
 import { TRACKING_ORDERS, TrackingOrderLookup } from '../domain/notification';
 import {
+  CONVERSATION_ROOMS,
+  ConversationRoomAccess,
   decideRoomJoin,
+  isConversationRoom,
+  mayReceiveConversationEvent,
   readRealtimeCredentials,
   RealtimeEnvelope,
   roomsForStaff,
@@ -28,6 +32,8 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
     private readonly subscriber: RedisRealtimeSubscriber,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
     @Inject(TRACKING_ORDERS) private readonly tracking: TrackingOrderLookup,
+    @Inject(CONVERSATION_ROOMS)
+    private readonly conversationRooms: ConversationRoomAccess,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -69,7 +75,12 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
       });
     });
     this.io = io;
-    await this.subscriber.listen((message) => this.emit(message));
+    await this.subscriber.listen((message) => {
+      void this.emit(message).catch((error: unknown) => {
+        const text = error instanceof Error ? error.message : 'realtime emit failed';
+        this.logger.error(text, undefined, 'RealtimeGateway');
+      });
+    });
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -100,6 +111,9 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
           this.config.jwtAccessSecret,
           new Date(),
         );
+        socket.data.permissions = [...claims.permissions];
+        socket.data.tenantId = claims.tenantId;
+        socket.data.storeId = claims.storeId;
         return roomsForStaff({
           role: claims.role,
           userId: claims.sub,
@@ -122,6 +136,10 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
   }
 
   private onJoin(socket: Socket, room: unknown): void {
+    if (typeof room === 'string' && isConversationRoom(room)) {
+      void this.joinConversation(socket, room);
+      return;
+    }
     const allowed = readAllowedRooms(socket.data.rooms);
     if (typeof room !== 'string' || decideRoomJoin(allowed, room) === 'ignore') {
       this.logger.warn('Rejected realtime room join', 'RealtimeGateway');
@@ -130,13 +148,47 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
     void socket.join(room);
   }
 
-  private emit(message: RealtimeEnvelope): void {
+  private async joinConversation(socket: Socket, room: string): Promise<void> {
+    const permissions = readPermissions(socket.data.permissions);
+    const tenantId = readText(socket.data.tenantId);
+    const storeId = readText(socket.data.storeId);
+    if (
+      !mayReceiveConversationEvent(permissions) ||
+      tenantId === null ||
+      storeId === null
+    ) {
+      this.logger.warn('Rejected realtime room join', 'RealtimeGateway');
+      return;
+    }
+    const conversationId = room.slice('conversation:'.length);
+    const allowed = await this.conversationRooms.belongsToStore(
+      conversationId,
+      tenantId,
+      storeId,
+    );
+    if (!allowed) {
+      this.logger.warn('Rejected realtime room join', 'RealtimeGateway');
+      return;
+    }
+    await socket.join(room);
+  }
+
+  private async emit(message: RealtimeEnvelope): Promise<void> {
     const namespace = this.io?.of('/realtime');
     if (namespace === undefined) {
       return;
     }
     for (const room of message.rooms) {
-      namespace.to(room).emit(message.event, message.payload);
+      if (message.event !== 'conversation.message_received') {
+        namespace.to(room).emit(message.event, message.payload);
+        continue;
+      }
+      const sockets = await namespace.in(room).fetchSockets();
+      for (const socket of sockets) {
+        if (mayReceiveConversationEvent(readPermissions(socket.data.permissions))) {
+          socket.emit(message.event, message.payload);
+        }
+      }
     }
   }
 }
@@ -146,4 +198,19 @@ function readAllowedRooms(value: unknown): readonly string[] {
     return [];
   }
   return value.filter((room): room is string => typeof room === 'string');
+}
+
+function readPermissions(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is string => typeof item === 'string');
+}
+
+function readText(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
 }

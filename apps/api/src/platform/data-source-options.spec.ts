@@ -18,6 +18,7 @@ describe('createDataSourceOptions', () => {
         PLATFORM_DOMAIN: 'localhost',
         JWT_ACCESS_SECRET: 'local-development-jwt-access-secret',
         CORS_ORIGINS: 'http://localhost:4200',
+        CREDENTIALS_ENCRYPTION_KEY: 'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=',
       }),
     );
 

@@ -3100,6 +3100,383 @@
           "public-leads"
         ]
       }
+    },
+    "/api/v1/admin/whatsapp/connection": {
+      "get": {
+        "description": "Returns the official Cloud API connection. The access token is never included.",
+        "operationId": "AdminWhatsAppController_getConnection",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsAppConnectionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the store WhatsApp connection",
+        "tags": [
+          "admin-whatsapp"
+        ]
+      },
+      "delete": {
+        "operationId": "AdminWhatsAppController_disconnect",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-whatsapp"
+        ]
+      }
+    },
+    "/api/v1/admin/whatsapp/connect": {
+      "post": {
+        "description": "Stores the establishment access token encrypted. Replacing a connection disconnects the previous secret.",
+        "operationId": "AdminWhatsAppController_connect",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectWhatsAppDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsAppConnectionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Connect the store WhatsApp number",
+        "tags": [
+          "admin-whatsapp"
+        ]
+      }
+    },
+    "/api/v1/admin/whatsapp/sends": {
+      "get": {
+        "description": "The last 50 system messages for this store: template, status, time and a short error. Bodies and tokens are omitted.",
+        "operationId": "AdminWhatsAppController_listSends",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsAppSendListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List recent system WhatsApp sends",
+        "tags": [
+          "admin-whatsapp"
+        ]
+      }
+    },
+    "/api/v1/admin/whatsapp/templates": {
+      "get": {
+        "description": "The eight status templates. The owner can disable a key. The last send error shows a masked phone.",
+        "operationId": "AdminWhatsAppController_listTemplates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsAppTemplateListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List order status WhatsApp templates",
+        "tags": [
+          "admin-whatsapp"
+        ]
+      }
+    },
+    "/api/v1/admin/whatsapp/templates/{key}": {
+      "patch": {
+        "operationId": "AdminWhatsAppController_setTemplate",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWhatsAppTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsAppTemplateResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Enable or disable an order status template",
+        "tags": [
+          "admin-whatsapp"
+        ]
+      }
+    },
+    "/api/v1/admin/whatsapp/conversations": {
+      "get": {
+        "description": "Newest activity first. The phone on the card is masked. The full number is only on the thread.",
+        "operationId": "AdminWhatsAppController_listConversations",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List WhatsApp conversations",
+        "tags": [
+          "admin-whatsapp"
+        ]
+      }
+    },
+    "/api/v1/admin/whatsapp/conversations/{id}/messages": {
+      "get": {
+        "operationId": "AdminWhatsAppController_listMessages",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationThreadResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a WhatsApp conversation thread",
+        "tags": [
+          "admin-whatsapp"
+        ]
+      },
+      "post": {
+        "description": "Queues a session text on the store number.",
+        "operationId": "AdminWhatsAppController_reply",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendConversationMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reply in a WhatsApp conversation",
+        "tags": [
+          "admin-whatsapp"
+        ]
+      }
+    },
+    "/api/v1/admin/whatsapp/conversations/{id}/close": {
+      "post": {
+        "operationId": "AdminWhatsAppController_closeConversation",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationListItemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Close a WhatsApp conversation",
+        "tags": [
+          "admin-whatsapp"
+        ]
+      }
+    },
+    "/api/v1/webhooks/whatsapp": {
+      "get": {
+        "operationId": "WhatsAppWebhookController_verifySubscription",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Verify the Meta webhook subscription",
+        "tags": [
+          "webhooks"
+        ]
+      },
+      "post": {
+        "description": "Validates X-Hub-Signature-256 against the raw body and stores the event for the connected phone number.",
+        "operationId": "WhatsAppWebhookController_receiveEvent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Receive a signed Meta webhook",
+        "tags": [
+          "webhooks"
+        ]
+      }
     }
   },
   "info": {
@@ -6664,6 +7041,404 @@
         },
         "required": [
           "id"
+        ]
+      },
+      "WhatsAppConnectionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "META_CLOUD"
+            ]
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "businessAccountId": {
+            "type": "string"
+          },
+          "phoneNumberId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONNECTED",
+              "DISCONNECTED",
+              "ERROR"
+            ]
+          },
+          "credentialsHint": {
+            "type": "string",
+            "nullable": true,
+            "description": "Last four characters of the token"
+          },
+          "connectedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "disconnectedAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "phoneNumber",
+          "businessAccountId",
+          "phoneNumberId",
+          "status",
+          "credentialsHint",
+          "connectedAt",
+          "disconnectedAt"
+        ]
+      },
+      "ConnectWhatsAppDto": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "example": "+5511999999999"
+          },
+          "businessAccountId": {
+            "type": "string",
+            "example": "102290129340398"
+          },
+          "phoneNumberId": {
+            "type": "string",
+            "example": "106540352242922"
+          },
+          "accessToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "phoneNumber",
+          "businessAccountId",
+          "phoneNumberId",
+          "accessToken"
+        ]
+      },
+      "WhatsAppSendResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "templateKey": {
+            "type": "string",
+            "nullable": true,
+            "example": "order_received"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "SENT",
+              "FAILED",
+              "SKIPPED"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "templateKey",
+          "status",
+          "createdAt",
+          "error"
+        ]
+      },
+      "WhatsAppSendListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WhatsAppSendResponse"
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "WhatsAppTemplateErrorResponse": {
+        "type": "object",
+        "properties": {
+          "maskedPhone": {
+            "type": "string",
+            "example": "*******1234"
+          },
+          "message": {
+            "type": "string",
+            "example": "TEMPLATE_NOT_APPROVED"
+          }
+        },
+        "required": [
+          "maskedPhone",
+          "message"
+        ]
+      },
+      "WhatsAppTemplateResponse": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "order_received",
+              "order_accepted",
+              "order_rejected",
+              "order_preparing",
+              "order_ready",
+              "order_out_for_delivery",
+              "order_delivered",
+              "order_cancelled"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "example": "pt_BR"
+          },
+          "metaTemplateName": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "persisted": {
+            "type": "boolean"
+          },
+          "lastError": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhatsAppTemplateErrorResponse"
+              }
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "language",
+          "metaTemplateName",
+          "enabled",
+          "persisted",
+          "lastError"
+        ]
+      },
+      "WhatsAppTemplateListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WhatsAppTemplateResponse"
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "UpdateWhatsAppTemplateDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "ConversationListItemResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "maskedPhone": {
+            "type": "string",
+            "example": "*********1234"
+          },
+          "contactName": {
+            "type": "string",
+            "nullable": true
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "BOT",
+              "HUMAN",
+              "PAUSED",
+              "CLOSED"
+            ]
+          },
+          "linkedOrderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastMessageAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "maskedPhone",
+          "contactName",
+          "mode",
+          "linkedOrderId",
+          "lastMessageAt"
+        ]
+      },
+      "ConversationListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConversationListItemResponse"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMetaResponse"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "ConversationDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contactPhone": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string",
+            "nullable": true
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "BOT",
+              "HUMAN",
+              "PAUSED",
+              "CLOSED"
+            ]
+          },
+          "linkedOrderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastMessageAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "contactPhone",
+          "contactName",
+          "mode",
+          "linkedOrderId",
+          "lastMessageAt"
+        ]
+      },
+      "ConversationMessageResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "IN",
+              "OUT"
+            ]
+          },
+          "author": {
+            "type": "string",
+            "enum": [
+              "CUSTOMER",
+              "USER",
+              "SYSTEM"
+            ]
+          },
+          "body": {
+            "type": "string"
+          },
+          "templateKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "direction",
+          "author",
+          "body",
+          "templateKey",
+          "status",
+          "createdAt"
+        ]
+      },
+      "ConversationThreadResponse": {
+        "type": "object",
+        "properties": {
+          "conversation": {
+            "$ref": "#/components/schemas/ConversationDetailResponse"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConversationMessageResponse"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMetaResponse"
+          }
+        },
+        "required": [
+          "conversation",
+          "data",
+          "meta"
+        ]
+      },
+      "SendConversationMessageDto": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "body"
         ]
       }
     }

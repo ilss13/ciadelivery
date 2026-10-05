@@ -1,6 +1,9 @@
-import { Global, Module } from '@nestjs/common';
+import { Injectable, Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { OUTBOX_EXTRA_HANDLERS, OutboxHandler } from '@ciadelivery/orders';
+import {
+  OutboxHandlerRegistry,
+  OutboxHandlerRegistryModule,
+} from '@ciadelivery/orders/worker';
 import { PublishOrderRealtime } from './application/publish-order-realtime';
 import {
   NOTIFICATIONS,
@@ -13,9 +16,22 @@ import { RealtimeOutboxHandler } from './infrastructure/realtime-outbox-handler'
 import { RedisRealtimePublisher } from './infrastructure/redis-realtime';
 import { TypeOrmNotifications } from './infrastructure/typeorm-notifications';
 
+@Injectable()
+class RegisterRealtimeOutboxHandler {
+  constructor(
+    registry: OutboxHandlerRegistry,
+    handler: RealtimeOutboxHandler,
+  ) {
+    registry.add(handler);
+  }
+}
+
 @Global()
 @Module({
-  imports: [TypeOrmModule.forFeature([NotificationEntity])],
+  imports: [
+    OutboxHandlerRegistryModule,
+    TypeOrmModule.forFeature([NotificationEntity]),
+  ],
   providers: [
     TypeOrmNotifications,
     { provide: NOTIFICATIONS, useExisting: TypeOrmNotifications },
@@ -28,12 +44,7 @@ import { TypeOrmNotifications } from './infrastructure/typeorm-notifications';
       inject: [NOTIFICATIONS, REALTIME_PUBLISHER],
     },
     RealtimeOutboxHandler,
-    {
-      provide: OUTBOX_EXTRA_HANDLERS,
-      useFactory: (handler: RealtimeOutboxHandler): readonly OutboxHandler[] => [handler],
-      inject: [RealtimeOutboxHandler],
-    },
+    RegisterRealtimeOutboxHandler,
   ],
-  exports: [OUTBOX_EXTRA_HANDLERS],
 })
 export class NotificationsWorkerModule {}

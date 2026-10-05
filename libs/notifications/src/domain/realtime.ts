@@ -47,7 +47,29 @@ export type RealtimeCredentials =
   | { kind: 'staff'; token: string }
   | { kind: 'customer'; trackingToken: string };
 
-const ROOM_PREFIX = /^(tenant|store|order|courier):/;
+const ROOM_PREFIX = /^(tenant|store|order|courier|conversation):/;
+const CONVERSATION_ROOM =
+  /^conversation:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isConversationRoom(room: string): boolean {
+  return CONVERSATION_ROOM.test(room);
+}
+
+export function mayReceiveConversationEvent(
+  permissions: readonly string[],
+): boolean {
+  return permissions.includes('whatsapp.operate');
+}
+
+export interface ConversationRoomAccess {
+  belongsToStore(
+    conversationId: string,
+    tenantId: string,
+    storeId: string,
+  ): Promise<boolean>;
+}
+
+export const CONVERSATION_ROOMS = Symbol('CONVERSATION_ROOMS');
 const COURIER_ROOM_EVENTS = new Set<OrderRealtimeType>([
   'order.courier_assigned',
   'order.out_for_delivery',

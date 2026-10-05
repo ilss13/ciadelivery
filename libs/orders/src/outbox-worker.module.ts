@@ -13,6 +13,10 @@ import {
 } from './domain/outbox';
 import { BullMqOutboxQueue } from './infrastructure/bullmq-outbox-queue';
 import { LoggingOutboxHandler } from './infrastructure/logging-outbox-handler';
+import {
+  OutboxHandlerRegistry,
+  OutboxHandlerRegistryModule,
+} from './infrastructure/outbox-handler-registry';
 import { OutboxEventEntity, ProcessedEventEntity } from './infrastructure/outbox.entities';
 import { OutboxPoller } from './infrastructure/outbox-poller';
 import {
@@ -31,7 +35,10 @@ export class OutboxWorkerModule {
   static register(options: OutboxWorkerOptions = {}): DynamicModule {
     return {
       module: OutboxWorkerModule,
-      imports: [TypeOrmModule.forFeature([OutboxEventEntity, ProcessedEventEntity])],
+      imports: [
+        OutboxHandlerRegistryModule,
+        TypeOrmModule.forFeature([OutboxEventEntity, ProcessedEventEntity]),
+      ],
       providers: [
         TypeOrmOutbox,
         { provide: OUTBOX_STORE, useExisting: TypeOrmOutbox },
@@ -59,14 +66,21 @@ export class OutboxWorkerModule {
           useFactory: (
             outbox: OutboxStore,
             logging: LoggingOutboxHandler,
-            extra: readonly OutboxHandler[] | undefined,
+            extra: unknown,
             backoffMs: (attempt: number) => number,
-          ) => new ProcessOutboxEvent(outbox, [...(extra ?? []), logging], backoffMs),
+            registry: OutboxHandlerRegistry,
+          ) =>
+            new ProcessOutboxEvent(
+              outbox,
+              () => [...registry.handlers(), ...collectHandlers(extra), logging],
+              backoffMs,
+            ),
           inject: [
             OUTBOX_STORE,
             LoggingOutboxHandler,
             { token: OUTBOX_EXTRA_HANDLERS, optional: true },
             OUTBOX_BACKOFF,
+            OutboxHandlerRegistry,
           ],
         },
         BullMqOutboxQueue,
@@ -75,4 +89,33 @@ export class OutboxWorkerModule {
       exports: [OutboxPoller, ProcessOutboxEvent, OUTBOX_STORE],
     };
   }
+}
+
+function collectHandlers(extra: unknown): OutboxHandler[] {
+  if (!Array.isArray(extra)) {
+    return [];
+  }
+  const handlers: OutboxHandler[] = [];
+  for (const item of extra) {
+    if (Array.isArray(item)) {
+      for (const nested of item) {
+        if (isHandler(nested)) {
+          handlers.push(nested);
+        }
+      }
+      continue;
+    }
+    if (isHandler(item)) {
+      handlers.push(item);
+    }
+  }
+  return handlers;
+}
+
+function isHandler(value: unknown): value is OutboxHandler {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as { supports?: unknown; handle?: unknown };
+  return typeof candidate.supports === 'function' && typeof candidate.handle === 'function';
 }

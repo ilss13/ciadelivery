@@ -1,0 +1,113 @@
+<fieldset>
+  <legend>WhatsApp</legend>
+  <p class="muted">
+    Cada loja usa o próprio número oficial do WhatsApp Business, pela API
+    oficial da Meta (Cloud API). O token fica cifrado e não aparece de novo.
+  </p>
+  @if (loading()) {
+  <p>Carregando WhatsApp…</p>
+  } @else {
+  @if (connection(); as current) {
+  <p>
+    Status: {{ statusLabel[current.status] }}
+    @if (current.phoneNumber) {
+    · {{ current.phoneNumber }}
+    }
+    @if (current.credentialsHint) {
+    · token ••••{{ current.credentialsHint }}
+    }
+  </p>
+  } @else {
+  <p>Nenhum número conectado.</p>
+  }
+  <label>
+    Número exibido
+    <input
+      [value]="phoneNumber()"
+      autocomplete="off"
+      (input)="setPhoneNumber($event)"
+    />
+  </label>
+  <label>
+    ID da conta business
+    <input
+      [value]="businessAccountId()"
+      inputmode="numeric"
+      autocomplete="off"
+      (input)="setBusinessAccountId($event)"
+    />
+  </label>
+  <label>
+    ID do número
+    <input
+      [value]="phoneNumberId()"
+      inputmode="numeric"
+      autocomplete="off"
+      (input)="setPhoneNumberId($event)"
+    />
+  </label>
+  <label>
+    Token de acesso
+    <input
+      type="password"
+      [value]="accessToken()"
+      autocomplete="new-password"
+      (input)="setAccessToken($event)"
+    />
+  </label>
+  <button type="button" (click)="connect()" [disabled]="saving()">
+    {{ connection()?.status === 'CONNECTED' ? 'Substituir conexão' : 'Conectar' }}
+  </button>
+  @if (connection() && connection()?.status !== 'DISCONNECTED') {
+  <button type="button" (click)="disconnect()" [disabled]="saving()">
+    Desconectar
+  </button>
+  } }
+  <div class="templates">
+    <p class="muted">Avisos de status do pedido. Desligado: a loja não envia.</p>
+    @for (item of templates(); track item.key) {
+    <div>
+      <label class="check">
+        <input
+          type="checkbox"
+          [checked]="item.enabled"
+          [disabled]="saving() || !item.persisted"
+          (change)="toggleTemplate(item, $event)"
+        />
+        {{ templateLabel[item.key] || item.key }}
+      </label>
+      @if (item.lastError; as failure) {
+      <p class="error">
+        Último erro ({{ failure.maskedPhone }}): {{ errorText(failure.message) }}
+      </p>
+      }
+    </div>
+    }
+  </div>
+  <section aria-labelledby="whatsapp-sends">
+    <h2 id="whatsapp-sends">Envios</h2>
+    <p class="muted">Últimas mensagens de sistema desta loja.</p>
+    @if (sends().length === 0) {
+    <p>Nenhum envio ainda.</p>
+    } @else {
+    <ul class="sends">
+      @for (item of sends(); track item.id) {
+      <li>
+        <span>{{ sendTitle(item) }}</span>
+        <span>{{ sendStatusLabel[item.status] }}</span>
+        <time [attr.datetime]="item.createdAt">{{ formatWhen(item.createdAt) }}</time>
+        @if (item.error) {
+        <p class="error">{{ errorText(item.error) }}</p>
+        }
+      </li>
+      }
+    </ul>
+    }
+  </section>
+  @if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+  }
+  @if (notice()) {
+  <p role="status">{{ notice() }}</p>
+  }
+</fieldset>

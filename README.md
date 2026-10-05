@@ -64,6 +64,8 @@ npm run start:courier
 npx nx e2e courier-e2e
 ```
 
+O WhatsApp de cada loja usa a Cloud API oficial. `WHATSAPP_DRIVER=log` (o padrão) grava a conexão sem chamar a Meta. `WHATSAPP_DRIVER=meta` valida o número em `https://graph.facebook.com`. O token da loja é cifrado com `CREDENTIALS_ENCRYPTION_KEY` (32 bytes em base64), obrigatória quando `NODE_ENV=local`. O webhook confere `META_APP_SECRET` e `META_WEBHOOK_VERIFY_TOKEN`. Cada mudança de status do pedido envia o template daquela loja; `WHATSAPP_ALLOW_SESSION_MESSAGES` só vale fora de production.
+
 Com `GEOCODING_DRIVER=stub` (o padrão), o checkout não chama um mapa externo. O stub transforma o CEP em uma coordenada estável numa caixa de cerca de 2 km ao redor da origem de demonstração `-23.550520, -46.633308` (Praça da Sé, São Paulo). O CEP `99999-999` fica cerca de 22 km ao norte dessa origem, fora do raio padrão de 8 km, para o cardápio mostrar endereço fora da área. Com `GEOCODING_DRIVER=http`, a API faz `GET` em `GEOCODING_URL` e espera JSON `{ "latitude", "longitude" }`.
 
 O e2e do cardápio compara o nome e a variável `--brand-primary` nos dois hosts. Ele não sobe os servidores: a API (com `SEED_DEMO=true`) e o storefront precisam estar no ar. Se a API estiver fora, o teste falha com essa mensagem em vez de passar vazio.

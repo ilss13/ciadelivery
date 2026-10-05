@@ -10,6 +10,10 @@ import {
   HttpOrdersBoardStore,
   ORDERS_BOARD_STORE,
 } from './features/orders/orders-board.store';
+import {
+  CONVERSATION_FEED,
+  SocketConversationFeed,
+} from './features/whatsapp/conversation-feed';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -17,5 +21,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(appRoutes),
     provideHttpClient(withInterceptors([authInterceptor])),
     { provide: ORDERS_BOARD_STORE, useExisting: HttpOrdersBoardStore },
+    { provide: CONVERSATION_FEED, useExisting: SocketConversationFeed },
   ],
 };

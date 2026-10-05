@@ -42,6 +42,12 @@ export interface AppConfig {
   s3Region: string;
   geocodingDriver: 'stub' | 'http';
   geocodingUrl: string;
+  credentialsEncryptionKey: string;
+  whatsappDriver: 'log' | 'meta';
+  metaGraphVersion: string;
+  metaAppSecret: string;
+  metaWebhookVerifyToken: string;
+  whatsappAllowSessionMessages: boolean;
 }
 
 export const APP_CONFIG = Symbol('APP_CONFIG');
@@ -249,6 +255,7 @@ export function loadAppConfig(env: Env = process.env): AppConfig {
     demoOwnerPassword,
     ...storageConfig(env, apiPort),
     ...geocodingConfig(env),
+    ...whatsappConfig(env, nodeEnv),
   };
 }
 
@@ -335,6 +342,60 @@ function geocodingConfig(
   }
 
   return { geocodingDriver, geocodingUrl };
+}
+
+function whatsappConfig(
+  env: Env,
+  nodeEnv: NodeEnv,
+): Pick<
+  AppConfig,
+  | 'credentialsEncryptionKey'
+  | 'whatsappDriver'
+  | 'metaGraphVersion'
+  | 'metaAppSecret'
+  | 'metaWebhookVerifyToken'
+  | 'whatsappAllowSessionMessages'
+> {
+  const rawKey = env['CREDENTIALS_ENCRYPTION_KEY']?.trim() ?? '';
+  if (rawKey.length === 0 && nodeEnv === 'local') {
+    throw new Error(
+      'Missing required environment variables: CREDENTIALS_ENCRYPTION_KEY',
+    );
+  }
+  if (rawKey.length > 0) {
+    const key = Buffer.from(rawKey, 'base64');
+    if (key.length !== 32) {
+      throw new Error(
+        'Invalid CREDENTIALS_ENCRYPTION_KEY: expected 32 bytes in base64',
+      );
+    }
+  }
+
+  const driverValue = env['WHATSAPP_DRIVER']?.trim() ?? '';
+  const whatsappDriver = driverValue.length === 0 ? 'log' : driverValue;
+  if (whatsappDriver !== 'log' && whatsappDriver !== 'meta') {
+    throw new Error('Invalid WHATSAPP_DRIVER: expected log or meta');
+  }
+
+  const versionValue = env['META_GRAPH_VERSION']?.trim() ?? '';
+  const metaGraphVersion = versionValue.length === 0 ? 'v21.0' : versionValue;
+  if (!/^v\d+\.\d+$/.test(metaGraphVersion)) {
+    throw new Error(
+      'Invalid META_GRAPH_VERSION: expected a version like v21.0',
+    );
+  }
+
+  return {
+    credentialsEncryptionKey: rawKey,
+    whatsappDriver,
+    metaGraphVersion,
+    metaAppSecret: env['META_APP_SECRET'] ?? '',
+    metaWebhookVerifyToken: env['META_WEBHOOK_VERIFY_TOKEN']?.trim() ?? '',
+    whatsappAllowSessionMessages:
+      nodeEnv === 'production'
+        ? false
+        : parseFlag(env['WHATSAPP_ALLOW_SESSION_MESSAGES']),
+  };
 }
 
 function parseStoreTimezone(value: string | undefined): string {

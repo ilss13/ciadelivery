@@ -24,6 +24,12 @@ export function canReadCustomers(
   return user !== null && user.permissions.includes('customers.read');
 }
 
+export function canOperateWhatsApp(
+  user: { permissions: readonly string[] } | null,
+): boolean {
+  return user !== null && user.permissions.includes('whatsapp.operate');
+}
+
 export function canManageCatalog(
   user: { permissions: readonly string[] } | null,
 ): boolean {

@@ -17,6 +17,12 @@ x-backend-environment: &backend-environment
   CORS_ORIGINS: http://localhost:4200,http://localhost:4201,http://localhost:4202,http://localhost:4203,http://pizzariadoze.localhost:4201,http://burgercentral.localhost:4201
   STORAGE_DRIVER: local
   GEOCODING_DRIVER: stub
+  CREDENTIALS_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+  WHATSAPP_DRIVER: log
+  WHATSAPP_ALLOW_SESSION_MESSAGES: 'false'
+  META_GRAPH_VERSION: v21.0
+  META_APP_SECRET: local-meta-app-secret
+  META_WEBHOOK_VERIFY_TOKEN: local-webhook-verify-token
   STORAGE_LOCAL_DIR: /var/lib/ciadelivery/storage
   STORAGE_PUBLIC_BASE_URL: http://localhost:3000
 

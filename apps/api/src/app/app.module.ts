@@ -7,6 +7,7 @@ import { LeadsModule } from '@ciadelivery/leads';
 import { NotificationsModule } from '@ciadelivery/notifications';
 import { OrdersModule } from '@ciadelivery/orders';
 import { PlatformModule, StorageModule } from '@ciadelivery/shared';
+import { WhatsAppModule } from '@ciadelivery/whatsapp';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PlatformTenantsModule } from './platform-tenants.module';
@@ -23,6 +24,7 @@ import { PlatformTenantsModule } from './platform-tenants.module';
     OrdersModule,
     NotificationsModule,
     LeadsModule,
+    WhatsAppModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -29,6 +29,8 @@
       "@ciadelivery/branding": ["./libs/branding/src/index.ts"],
       "@ciadelivery/shared": ["./libs/shared/src/index.ts"],
       "@ciadelivery/users": ["./libs/users/src/index.ts"],
+      "@ciadelivery/whatsapp": ["./libs/whatsapp/src/index.ts"],
+      "@ciadelivery/whatsapp/worker": ["./libs/whatsapp/src/worker.ts"],
       "@ciadelivery/stores": ["./libs/stores/src/index.ts"],
       "@ciadelivery/tenancy": ["./libs/tenancy/src/index.ts"],
       "@ciadelivery/tenancy/core": ["./libs/tenancy/src/core.ts"],

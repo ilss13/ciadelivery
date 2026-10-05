@@ -18,6 +18,7 @@ import {
   mediaUrl,
 } from '../../shared/image-file';
 import { DeliverySettingsSection } from './delivery-settings';
+import { WhatsAppSettingsSection } from './whatsapp-settings';
 import { centsToReais, reaisToCents } from './money';
 import { PaymentMethodsSection } from './payment-methods';
 
@@ -73,7 +74,12 @@ interface BusinessHour {
 
 @Component({
   selector: 'admin-settings-page',
-  imports: [ReactiveFormsModule, DeliverySettingsSection, PaymentMethodsSection],
+  imports: [
+    ReactiveFormsModule,
+    DeliverySettingsSection,
+    PaymentMethodsSection,
+    WhatsAppSettingsSection,
+  ],
   templateUrl: './settings-page.html',
 })
 export class SettingsPage implements OnInit {
@@ -82,6 +88,7 @@ export class SettingsPage implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly paymentMethods = viewChild(PaymentMethodsSection);
   private readonly deliverySettings = viewChild(DeliverySettingsSection);
+  private readonly whatsappSettings = viewChild(WhatsAppSettingsSection);
 
   readonly weekdays = WEEKDAYS;
   readonly loading = signal(true);
@@ -161,7 +168,8 @@ export class SettingsPage implements OnInit {
     return (
       this.form.dirty ||
       (this.paymentMethods()?.hasUnsavedChanges() ?? false) ||
-      (this.deliverySettings()?.hasUnsavedChanges() ?? false)
+      (this.deliverySettings()?.hasUnsavedChanges() ?? false) ||
+      (this.whatsappSettings()?.hasUnsavedChanges() ?? false)
     );
   }
 

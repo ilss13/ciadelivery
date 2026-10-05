@@ -3,6 +3,7 @@ import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import {
   canConfigure,
   canManageCatalog,
+  canOperateWhatsApp,
   canReadCustomers,
   canReadOrders,
 } from '../../core/access';
@@ -33,6 +34,10 @@ export class ShellPage {
 
   canReadOrders(): boolean {
     return canReadOrders(this.user());
+  }
+
+  canOperateWhatsApp(): boolean {
+    return canOperateWhatsApp(this.user());
   }
 
   logout(): void {

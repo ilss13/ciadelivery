@@ -3,6 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import {
   canConfigure,
   canManageCatalog,
+  canOperateWhatsApp,
   canReadCustomers,
   canReadOrders,
 } from './access';
@@ -29,6 +30,15 @@ export const customersGuard: CanActivateFn = () => {
 export const ordersGuard: CanActivateFn = () => {
   const session = inject(SessionService);
   if (canReadOrders(session.user())) {
+    return true;
+  }
+
+  return inject(Router).createUrlTree(['/inicio']);
+};
+
+export const whatsappGuard: CanActivateFn = () => {
+  const session = inject(SessionService);
+  if (canOperateWhatsApp(session.user())) {
     return true;
   }
 

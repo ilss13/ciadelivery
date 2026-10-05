@@ -10,6 +10,8 @@
   <a routerLink="/pedidos">Pedidos</a>
   } @if (canReadCustomers()) {
   <a routerLink="/clientes">Clientes</a>
+  } @if (canOperateWhatsApp()) {
+  <a routerLink="/whatsapp">Conversas</a>
   }
   <button type="button" (click)="logout()">Sair</button>
 </header>

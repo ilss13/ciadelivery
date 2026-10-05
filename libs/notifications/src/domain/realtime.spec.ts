@@ -1,5 +1,7 @@
 import {
   decideRoomJoin,
+  isConversationRoom,
+  mayReceiveConversationEvent,
   newOrderNotificationCopy,
   orderRealtimeDispatch,
   parseRealtimeEnvelope,
@@ -120,6 +122,35 @@ describe('realtime rooms', () => {
     ]);
     expect(decideRoomJoin(['courier:user-1'], 'courier:user-1')).toBe('join');
     expect(decideRoomJoin(['courier:user-1'], 'courier:user-2')).toBe('ignore');
+  });
+
+  it('delivers conversation events only to operators', () => {
+    expect(mayReceiveConversationEvent(['orders.read', 'orders.prepare'])).toBe(
+      false,
+    );
+    expect(
+      mayReceiveConversationEvent(['orders.read', 'whatsapp.operate']),
+    ).toBe(true);
+    const conversationId = '44444444-4444-4444-8444-444444444444';
+    expect(isConversationRoom(`conversation:${conversationId}`)).toBe(true);
+    expect(isConversationRoom(`store:${storeId}`)).toBe(false);
+    expect(
+      parseRealtimeEnvelope(
+        JSON.stringify({
+          event: 'conversation.message_received',
+          rooms: [`store:${storeId}`, `conversation:${conversationId}`],
+          payload: {
+            conversationId,
+            messageId: orderId,
+            storeId,
+            direction: 'IN',
+            author: 'CUSTOMER',
+            body: 'oi',
+            createdAt: '2026-10-05T12:00:00.000Z',
+          },
+        }),
+      )?.rooms,
+    ).toEqual([`store:${storeId}`, `conversation:${conversationId}`]);
   });
 
   it('ignores a room the connection was not granted', () => {

@@ -245,7 +245,74 @@ button.danger {
   }
 }
 
+.stack:has(.whatsapp) {
+  max-width: 72rem;
+}
+
+.whatsapp {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.thread {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 24rem;
+  overflow: auto;
+}
+
+.bubble {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  background: #fff;
+  border: 1px solid #e4ddd2;
+}
+
+.bubble p {
+  margin: 0;
+}
+
+.bubble.out {
+  background: #17202a;
+  color: #fff;
+}
+
+.bubble.out .muted {
+  color: #d5d8dc;
+}
+
+.bubble.system {
+  color: #5d6d7e;
+  background: transparent;
+  border-style: dashed;
+}
+
+.conversation-list .item {
+  width: 100%;
+  text-align: left;
+}
+
+@media (max-width: 47.99rem) {
+  .whatsapp.has-selection .conversation-list {
+    display: none;
+  }
+
+  .whatsapp:not(.has-selection) .conversation-thread {
+    display: none;
+  }
+}
+
 @media (min-width: 48rem) {
+  .whatsapp {
+    grid-template-columns: 16rem 1fr;
+    align-items: start;
+  }
+
+  .back {
+    display: none;
+  }
+
   .order-columns {
     grid-auto-flow: column;
     grid-auto-columns: 16rem;

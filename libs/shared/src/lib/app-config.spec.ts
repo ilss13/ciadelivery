@@ -18,6 +18,7 @@ const validEnv = {
   JWT_ACCESS_SECRET: 'local-development-jwt-access-secret',
   CORS_ORIGINS:
     'http://localhost:4200, http://localhost:4201,http://localhost:4202,http://localhost:4203',
+  CREDENTIALS_ENCRYPTION_KEY: 'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=',
 };
 
 describe('loadAppConfig', () => {
@@ -59,6 +60,12 @@ describe('loadAppConfig', () => {
       s3Region: '',
       geocodingDriver: 'stub',
       geocodingUrl: '',
+      credentialsEncryptionKey: 'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=',
+      whatsappDriver: 'log',
+      metaGraphVersion: 'v21.0',
+      metaAppSecret: '',
+      metaWebhookVerifyToken: '',
+      whatsappAllowSessionMessages: false,
     });
   });
 
@@ -174,6 +181,48 @@ describe('loadAppConfig', () => {
     expect(() =>
       loadAppConfig({ ...validEnv, STORE_TIMEZONE: 'Not/AZone' }),
     ).toThrow('Invalid STORE_TIMEZONE');
+  });
+
+  it('requires the credentials key in local and checks its size', () => {
+    const { CREDENTIALS_ENCRYPTION_KEY: _key, ...withoutKey } = validEnv;
+    expect(() => loadAppConfig(withoutKey)).toThrow(
+      'CREDENTIALS_ENCRYPTION_KEY',
+    );
+    expect(() =>
+      loadAppConfig({
+        ...validEnv,
+        CREDENTIALS_ENCRYPTION_KEY: Buffer.from('short').toString('base64'),
+      }),
+    ).toThrow('Invalid CREDENTIALS_ENCRYPTION_KEY');
+    expect(
+      loadAppConfig({ ...withoutKey, NODE_ENV: 'staging' })
+        .credentialsEncryptionKey,
+    ).toBe('');
+  });
+
+  it('ignores session messages in production', () => {
+    expect(
+      loadAppConfig({
+        ...validEnv,
+        NODE_ENV: 'production',
+        WHATSAPP_ALLOW_SESSION_MESSAGES: 'true',
+      }).whatsappAllowSessionMessages,
+    ).toBe(false);
+    expect(
+      loadAppConfig({
+        ...validEnv,
+        WHATSAPP_ALLOW_SESSION_MESSAGES: 'true',
+      }).whatsappAllowSessionMessages,
+    ).toBe(true);
+  });
+
+  it('accepts the Meta driver and refuses an unknown one', () => {
+    expect(
+      loadAppConfig({ ...validEnv, WHATSAPP_DRIVER: 'meta' }).whatsappDriver,
+    ).toBe('meta');
+    expect(() =>
+      loadAppConfig({ ...validEnv, WHATSAPP_DRIVER: 'web' }),
+    ).toThrow('Invalid WHATSAPP_DRIVER');
   });
 
   it('refuses a pool size that is not a positive integer', () => {
