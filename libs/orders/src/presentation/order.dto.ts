@@ -6,6 +6,7 @@ import {
   IsDefined,
   IsIn,
   IsInt,
+  IsISO8601,
   IsOptional,
   IsString,
   IsUUID,
@@ -425,6 +426,26 @@ export class PublicCheckoutResponse {
   paymentMethods!: PublicPaymentMethodResponse[];
 }
 
+function toStatusList(value: unknown): unknown {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  const raw = Array.isArray(value) ? value : [value];
+  const statuses = raw
+    .flatMap((item) => String(item).split(','))
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  return statuses.length === 0 ? undefined : statuses;
+}
+
+function emptyQueryToUndefined(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? undefined : trimmed;
+}
+
 export class ListOrdersQuery {
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()
@@ -440,11 +461,47 @@ export class ListOrdersQuery {
   @Min(1)
   @Max(100)
   pageSize?: number;
+
+  @ApiPropertyOptional({ enum: ORDER_STATUSES, isArray: true })
+  @IsOptional()
+  @Transform(({ value }) => toStatusList(value))
+  @IsArray()
+  @IsIn(ORDER_STATUSES, { each: true })
+  status?: (typeof ORDER_STATUSES)[number][];
+
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsOptional()
+  @Transform(({ value }) => emptyQueryToUndefined(value))
+  @IsISO8601()
+  from?: string;
+
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsOptional()
+  @Transform(({ value }) => emptyQueryToUndefined(value))
+  @IsISO8601()
+  to?: string;
 }
 
 export class OrderIdParam {
   @IsUUID('4')
   id!: string;
+}
+
+export class OptionalOrderNoteDto {
+  @ApiPropertyOptional({ nullable: true, maxLength: 280 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(280)
+  note?: string | null;
+}
+
+export class CancelOrderDto {
+  @ApiProperty({ maxLength: 280 })
+  @Transform(({ value }) => trimString(value))
+  @IsString()
+  @MinLength(1)
+  @MaxLength(280)
+  note!: string;
 }
 
 export class AdminOrderResponse {
@@ -465,6 +522,62 @@ export class AdminOrderResponse {
 
   @ApiProperty({ enum: ['DELIVERY', 'PICKUP'] })
   fulfillment!: string;
+
+  @ApiProperty()
+  customerName!: string;
+}
+
+export class AdminOrderDetailResponse {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  orderNumber!: number;
+
+  @ApiProperty({ enum: ORDER_STATUSES })
+  status!: string;
+
+  @ApiProperty({ enum: ['DELIVERY', 'PICKUP'] })
+  fulfillment!: string;
+
+  @ApiProperty()
+  paymentMethodCode!: string;
+
+  @ApiProperty()
+  paymentLabel!: string;
+
+  @ApiProperty({ nullable: true, type: String })
+  paymentInstructions!: string | null;
+
+  @ApiProperty()
+  customerName!: string;
+
+  @ApiProperty()
+  customerPhone!: string;
+
+  @ApiProperty({ nullable: true, type: PublicOrderAddressResponse })
+  address!: PublicOrderAddressResponse | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  notes!: string | null;
+
+  @ApiProperty()
+  subtotalCents!: number;
+
+  @ApiProperty()
+  deliveryFeeCents!: number;
+
+  @ApiProperty()
+  totalCents!: number;
+
+  @ApiProperty({ type: String, format: 'date-time' })
+  createdAt!: Date;
+
+  @ApiProperty({ type: [PublicOrderItemResponse] })
+  items!: PublicOrderItemResponse[];
+
+  @ApiProperty({ type: [PublicOrderHistoryResponse] })
+  history!: PublicOrderHistoryResponse[];
 }
 
 export class AdminOrderPageMeta {

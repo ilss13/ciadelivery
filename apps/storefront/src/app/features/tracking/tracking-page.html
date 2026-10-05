@@ -1,5 +1,8 @@
 <main class="tracking">
   <p><a routerLink="/">Voltar ao cardápio</a></p>
+  @if (reconnecting()) {
+  <p class="reconnect" aria-live="polite">reconectando</p>
+  }
   @if (loading()) {
   <p>Carregando o pedido…</p>
   } @else if (error()) {
@@ -33,6 +36,9 @@
     <li>
       <span>{{ status(entry.toStatus) }}</span>
       <time [attr.datetime]="entry.createdAt">{{ when(entry.createdAt) }}</time>
+      @if (entry.note) {
+      <p class="timeline-note">{{ entry.note }}</p>
+      }
     </li>
     }
   </ol>

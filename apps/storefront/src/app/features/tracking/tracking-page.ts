@@ -8,6 +8,8 @@ import { formatBrl } from '../../shared/money';
 import { OrderClient, PublicOrder } from '../checkout/order.client';
 import { formatWhen, fulfillmentLabel, statusLabel } from '../checkout/order-labels';
 import { orderErrorMessage } from '../checkout/order-messages';
+import { TRACKING_FEED } from './tracking-feed';
+import { applyTrackingEvent, TrackingEvent, withChronologicalHistory } from './tracking-timeline';
 
 @Component({
   selector: 'storefront-tracking-page',
@@ -19,13 +21,17 @@ export class TrackingPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly stores = inject(PublicStoreClient);
   private readonly orders = inject(OrderClient);
+  private readonly feed = inject(TRACKING_FEED);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(true);
   readonly error = signal('');
+  readonly reconnecting = signal(false);
   readonly order = signal<PublicOrder | null>(null);
 
   private token = '';
+  private loaded = false;
+  private readonly pending: TrackingEvent[] = [];
 
   ngOnInit(): void {
     this.token = this.route.snapshot.paramMap.get('trackingToken') ?? '';
@@ -38,6 +44,21 @@ export class TrackingPage implements OnInit {
         },
       });
     this.load();
+    this.feed
+      .watch(this.token)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((message) => {
+        if (message.kind === 'reconnecting') {
+          this.reconnecting.set(true);
+          return;
+        }
+        if (message.kind === 'resynced') {
+          this.reconnecting.set(false);
+          this.reloadQuiet();
+          return;
+        }
+        this.applyEvent(message.event);
+      });
   }
 
   load(): void {
@@ -48,7 +69,7 @@ export class TrackingPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (order) => {
-          this.order.set(order);
+          this.publish(order);
           this.loading.set(false);
         },
         error: (error: unknown) => {
@@ -73,5 +94,44 @@ export class TrackingPage implements OnInit {
 
   when(value: string): string {
     return formatWhen(value);
+  }
+
+  private publish(order: PublicOrder): void {
+    this.order.set(withChronologicalHistory(order));
+    if (this.loaded) {
+      return;
+    }
+    this.loaded = true;
+    const queued = this.pending.splice(0);
+    for (const event of queued) {
+      this.applyEvent(event);
+    }
+  }
+
+  private applyEvent(event: TrackingEvent): void {
+    const current = this.order();
+    if (!this.loaded || current === null) {
+      this.pending.push(event);
+      return;
+    }
+    const next = applyTrackingEvent(current, event);
+    if (next === null) {
+      return;
+    }
+    this.order.set(next);
+    if (event.status === 'REJECTED' || event.status === 'CANCELLED') {
+      this.reloadQuiet();
+    }
+  }
+
+  private reloadQuiet(): void {
+    this.orders
+      .load(this.token)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (order) => {
+          this.order.set(withChronologicalHistory(order));
+        },
+      });
   }
 }

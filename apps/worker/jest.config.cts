@@ -8,4 +8,5 @@ module.exports = {
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/apps/worker',
   testTimeout: 30000,
+  maxWorkers: 1,
 };

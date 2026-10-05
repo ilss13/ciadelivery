@@ -11,7 +11,10 @@ import { CurrentStore } from '@ciadelivery/stores';
 import { TransactionContext, UnitOfWork } from '@ciadelivery/tenancy/domain';
 import { DeliveryQuotePort, Fulfillment } from '../domain/delivery-quote';
 import { CreatedOrder, OrderAddress, trackingPath } from '../domain/order';
+import { DomainEventPublisher } from '../domain/domain-event';
+import { ORDER_CREATED_EVENT } from '../domain/order-command';
 import { OrderRepository } from '../domain/order-repository';
+import { orderEvent } from './order-events';
 import {
   assertCart,
   assertQuote,
@@ -56,6 +59,7 @@ export class CreatePublicOrder {
     private readonly quotes: DeliveryQuotePort,
     private readonly orders: OrderRepository,
     private readonly unitOfWork: UnitOfWork,
+    private readonly events: DomainEventPublisher,
   ) {}
 
   async execute(
@@ -237,6 +241,20 @@ export class CreatePublicOrder {
           orderId,
           createdAt: now,
         },
+        tx,
+      );
+      await this.events.publish(
+        orderEvent({
+          id: randomUUID(),
+          tenantId: scope.tenantId,
+          orderId,
+          orderNumber,
+          storeId: scope.storeId,
+          status: 'NEW',
+          fulfillment: input.fulfillment,
+          type: ORDER_CREATED_EVENT,
+          occurredAt: now,
+        }),
         tx,
       );
       if (address !== null) {

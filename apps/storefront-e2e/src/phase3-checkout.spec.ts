@@ -39,7 +39,7 @@ test('faz o checkout da pizzaria até o acompanhamento', async ({ page }) => {
     await page.getByRole('button', { name: 'Fazer pedido' }).click();
 
     await expect(page).toHaveURL(/\/pedido\//);
-    await expect(page.getByText('Pedido realizado')).toBeVisible();
+    await expect(page.getByRole('status')).toHaveText('Pedido realizado');
   } finally {
     await restore();
     await api.dispose();

@@ -1,12 +1,14 @@
 import { TransactionContext } from '@ciadelivery/tenancy/domain';
 import { Fulfillment } from './delivery-quote';
 import {
+  AdminOrderDetail,
   AdminOrderSummary,
   CreatedOrder,
   OrderAddress,
   OrderOptionSnapshot,
   PublicOrder,
 } from './order';
+import { OrderStatus } from './order-status';
 
 export interface IdempotencyRecord {
   tenantId: string;
@@ -87,14 +89,48 @@ export interface OrderRepository {
   listForStore(
     tenantId: string,
     storeId: string,
-    page: number,
-    pageSize: number,
+    query: StoreOrderListQuery,
   ): Promise<{ data: AdminOrderSummary[]; total: number }>;
   findForStore(
     tenantId: string,
     storeId: string,
     orderId: string,
   ): Promise<AdminOrderSummary | null>;
+  findDetailForStore(
+    tenantId: string,
+    storeId: string,
+    orderId: string,
+  ): Promise<AdminOrderDetail | null>;
+  lockForStore(
+    tenantId: string,
+    storeId: string,
+    orderId: string,
+    tx: TransactionContext,
+  ): Promise<AdminOrderSummary | null>;
+  applyTransition(
+    change: OrderStatusChange,
+    tx: TransactionContext,
+  ): Promise<boolean>;
+}
+
+export interface StoreOrderListQuery {
+  page: number;
+  pageSize: number;
+  statuses: readonly OrderStatus[] | null;
+  from: Date | null;
+  to: Date | null;
+}
+
+export interface OrderStatusChange {
+  tenantId: string;
+  storeId: string;
+  orderId: string;
+  fromStatus: OrderStatus;
+  toStatus: OrderStatus;
+  actorId: string;
+  note: string | null;
+  historyId: string;
+  updatedAt: Date;
 }
 
 export const ORDERS = Symbol('ORDERS');

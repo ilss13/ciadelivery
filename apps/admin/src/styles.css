@@ -194,3 +194,63 @@ button.danger {
   border-radius: 0.5rem;
   background: #fff;
 }
+
+.stack:has(.order-board) {
+  max-width: 90rem;
+}
+
+.order-board {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.order-columns {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.order-column {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  background: #efeae3;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+}
+
+.order-column h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.order-card .actions button {
+  min-height: 2.75rem;
+}
+
+.order-card.flash {
+  animation: order-flash 4s ease-out;
+}
+
+.order-card:focus {
+  outline: 3px solid #17202a;
+}
+
+@keyframes order-flash {
+  0%,
+  20% {
+    outline: 3px solid #f4d03f;
+  }
+  100% {
+    outline: 3px solid transparent;
+  }
+}
+
+@media (min-width: 48rem) {
+  .order-columns {
+    grid-auto-flow: column;
+    grid-auto-columns: 16rem;
+    overflow-x: auto;
+    align-items: start;
+    padding-bottom: 0.5rem;
+  }
+}

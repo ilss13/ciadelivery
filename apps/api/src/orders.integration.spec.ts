@@ -1,6 +1,8 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
-import { loadEnvFile } from '@ciadelivery/shared';
+import { DOMAIN_EVENTS, DomainEventPublisher } from '@ciadelivery/orders';
+import { DomainException, loadEnvFile } from '@ciadelivery/shared';
+import { UNIT_OF_WORK, UnitOfWork } from '@ciadelivery/tenancy';
 import Redis from 'ioredis';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
@@ -80,6 +82,16 @@ describe('public orders', () => {
       const dataSource = app.get(DataSource);
       if (dataSource.isInitialized && createdTenantIds.length > 0) {
         const marks = createdTenantIds.map(() => '?').join(', ');
+        await dataSource.query(
+          `DELETE pe FROM processed_events pe
+           INNER JOIN outbox_events oe ON oe.id = pe.event_id
+           WHERE oe.tenant_id IN (${marks})`,
+          createdTenantIds,
+        );
+        await dataSource.query(
+          `DELETE FROM outbox_events WHERE tenant_id IN (${marks})`,
+          createdTenantIds,
+        );
         await dataSource.query(
           `DELETE FROM order_status_history WHERE tenant_id IN (${marks})`,
           createdTenantIds,
@@ -290,6 +302,42 @@ describe('public orders', () => {
       .set('Authorization', `Bearer ${ownerA.token}`)
       .expect(200);
     expect(ownOrder.body.trackingToken).toBeUndefined();
+    expect(ownOrder.body.customerName).toBe('Ana');
+    expect(ownOrder.body.paymentMethodCode).toBe('CASH');
+    expect(ownOrder.body.subtotalCents).toBe(4990);
+    expect(ownOrder.body.deliveryFeeCents).toBe(650);
+    expect(ownOrder.body.totalCents).toBe(5640);
+    expect(ownOrder.body.items).toEqual([
+      expect.objectContaining({
+        productName: 'Margherita',
+        subtotalCents: 4990,
+      }),
+    ]);
+    expect(ownOrder.body.history).toEqual([
+      expect.objectContaining({ toStatus: 'NEW', actorType: 'CUSTOMER' }),
+    ]);
+    const acceptedOnly = await request(app.getHttpServer())
+      .get('/api/v1/admin/orders')
+      .query({ status: 'ACCEPTED' })
+      .set('Authorization', `Bearer ${ownerA.token}`)
+      .expect(200);
+    expect(acceptedOnly.body.data).toEqual([]);
+    const createdOnly = await request(app.getHttpServer())
+      .get('/api/v1/admin/orders')
+      .query({
+        status: 'NEW',
+        from: '2000-01-01T00:00:00.000Z',
+        to: '2100-01-01T00:00:00.000Z',
+      })
+      .set('Authorization', `Bearer ${ownerA.token}`)
+      .expect(200);
+    expect(createdOnly.body.data).toEqual([
+      expect.objectContaining({
+        id: created.body.orderId,
+        customerName: 'Ana',
+        status: 'NEW',
+      }),
+    ]);
     const foreignOrder = await request(app.getHttpServer())
       .get(`/api/v1/admin/orders/${created.body.orderId as string}`)
       .set('Authorization', `Bearer ${ownerB.token}`)
@@ -434,6 +482,323 @@ describe('public orders', () => {
     expect(second.status).toBe(201);
     expect(first.body.orderNumber).not.toBe(second.body.orderNumber);
   });
+
+  it('records an outbox event with the order and advances status in the same transaction', async () => {
+    const owner = await createOwner('outbox-a', 'Outbox A');
+    const other = await createOwner('outbox-b', 'Outbox B');
+    const catalog = await createProduct(owner.token);
+    await openStore(owner.token);
+    const dataSource = app.get(DataSource);
+    const payload = orderBody(catalog, {
+      fulfillment: 'PICKUP',
+      includeAddress: false,
+    });
+    const idempotencyKey = randomUUID();
+    const created = await postOrder(owner.tenantSlug, payload, idempotencyKey);
+    expect(created.status).toBe(201);
+    const orderId = created.body.orderId as string;
+    const pending = await outboxRows(dataSource, orderId);
+    expect(pending).toEqual([
+      expect.objectContaining({ type: 'order.created', status: 'PENDING' }),
+    ]);
+    expect(JSON.stringify(pending[0]?.payload)).not.toContain(
+      created.body.trackingToken as string,
+    );
+
+    const replay = await postOrder(owner.tenantSlug, payload, idempotencyKey);
+    expect(replay.status).toBe(201);
+    expect(await outboxRows(dataSource, orderId)).toHaveLength(1);
+
+    const me = await request(app.getHttpServer())
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    const accepted = await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${orderId}/accept`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    expect(accepted.body.status).toBe('ACCEPTED');
+    const again = await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${orderId}/accept`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(409);
+    expect(again.body.error.code).toBe('ORDER_INVALID_TRANSITION');
+    expect(await outboxRows(dataSource, orderId)).toEqual([
+      expect.objectContaining({ type: 'order.created' }),
+      expect.objectContaining({ type: 'order.accepted', status: 'PENDING' }),
+    ]);
+
+    const history: Array<{
+      actor_type: string;
+      actor_id: string | null;
+      to_status: string;
+    }> = await dataSource.query(
+      `SELECT actor_type, actor_id, to_status
+       FROM order_status_history
+       WHERE order_id = ?
+       ORDER BY created_at ASC`,
+      [orderId],
+    );
+    expect(history[1]).toEqual({
+      actor_type: 'USER',
+      actor_id: me.body.id,
+      to_status: 'ACCEPTED',
+    });
+
+    const foreign = await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${orderId}/reject`)
+      .set('Authorization', `Bearer ${other.token}`)
+      .send({ note: 'nao' })
+      .expect(404);
+    expect(foreign.body.error.code).toBe('ORDER_NOT_FOUND');
+    expect(await outboxRows(dataSource, orderId)).toHaveLength(2);
+
+    const kitchenEmail = `kitchen-${randomBytes(3).toString('hex')}@example.com`;
+    emails.push(kitchenEmail);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        name: 'Cozinha',
+        email: kitchenEmail,
+        password: 'KitchenPassword1',
+        role: 'KITCHEN',
+      })
+      .expect(201);
+    const kitchen = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: kitchenEmail, password: 'KitchenPassword1' })
+      .expect(200);
+    const forbidden = await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${orderId}/cancel`)
+      .set('Authorization', `Bearer ${kitchen.body.accessToken as string}`)
+      .send({ note: 'nao pode' })
+      .expect(403);
+    expect(forbidden.body.error.code).toBe('FORBIDDEN');
+
+    const prepared = await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${orderId}/start-preparation`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    expect(prepared.body.status).toBe('IN_PREPARATION');
+    const ready = await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${orderId}/ready`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    expect(ready.body.status).toBe('READY');
+    const delivered = await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${orderId}/complete-pickup`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    expect(delivered.body.status).toBe('DELIVERED');
+    expect(await outboxRows(dataSource, orderId)).toEqual([
+      expect.objectContaining({ type: 'order.created' }),
+      expect.objectContaining({ type: 'order.accepted' }),
+      expect.objectContaining({ type: 'order.in_preparation' }),
+      expect.objectContaining({ type: 'order.ready' }),
+      expect.objectContaining({ type: 'order.delivered' }),
+    ]);
+
+    const delivery = await postOrder(
+      owner.tenantSlug,
+      orderBody(catalog, { fulfillment: 'DELIVERY' }),
+    );
+    expect(delivery.status).toBe(201);
+    const deliveryId = delivery.body.orderId as string;
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${deliveryId}/accept`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${deliveryId}/start-preparation`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${deliveryId}/ready`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    const courier = await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${deliveryId}/complete-pickup`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(409);
+    expect(courier.body.error.code).toBe('DELIVERY_REQUIRES_COURIER');
+    const deliveryEvents = await outboxRows(dataSource, deliveryId);
+    expect(deliveryEvents.map((row) => row.type)).not.toContain('order.delivered');
+
+    const rejected = await postOrder(
+      owner.tenantSlug,
+      orderBody(catalog, {
+        fulfillment: 'PICKUP',
+        includeAddress: false,
+        customer: { name: 'Bia', phone: '11977776666' },
+      }),
+    );
+    const reject = await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${rejected.body.orderId as string}/reject`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ note: 'sem estoque' })
+      .expect(200);
+    expect(reject.body.status).toBe('REJECTED');
+
+    const cancelled = await postOrder(
+      owner.tenantSlug,
+      orderBody(catalog, {
+        fulfillment: 'PICKUP',
+        includeAddress: false,
+        customer: { name: 'Caio', phone: '11966665555' },
+      }),
+    );
+    const missingNote = await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${cancelled.body.orderId as string}/cancel`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({})
+      .expect(400);
+    expect(missingNote.body.error.code).toBe('VALIDATION_ERROR');
+    const cancel = await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${cancelled.body.orderId as string}/cancel`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ note: 'cliente desistiu' })
+      .expect(200);
+    expect(cancel.body.status).toBe('CANCELLED');
+    const notes: Array<{ note: string | null; to_status: string }> =
+      await dataSource.query(
+        `SELECT note, to_status FROM order_status_history WHERE order_id = ? AND to_status = 'CANCELLED'`,
+        [cancelled.body.orderId],
+      );
+    expect(notes).toEqual([{ note: 'cliente desistiu', to_status: 'CANCELLED' }]);
+    expect(await outboxRows(dataSource, cancelled.body.orderId as string)).toEqual([
+      expect.objectContaining({ type: 'order.created' }),
+      expect.objectContaining({ type: 'order.cancelled' }),
+    ]);
+  });
+
+  it('rolls back the outbox when the order transaction fails', async () => {
+    const owner = await createOwner('outbox-rollback', 'Outbox Rollback');
+    const catalog = await createProduct(owner.token);
+    await openStore(owner.token);
+    const dataSource = app.get(DataSource);
+    const denied = await postOrder(
+      owner.tenantSlug,
+      orderBody(catalog, {
+        fulfillment: 'PICKUP',
+        includeAddress: false,
+        consents: {
+          operational: false,
+          marketing: false,
+          policyVersion: '2026-10-02',
+        },
+      }),
+    );
+    expect(denied.status).toBe(400);
+    expect(denied.body.error.code).toBe('CONSENT_REQUIRED');
+    const rows: unknown[] = await dataSource.query(
+      `SELECT id FROM outbox_events WHERE tenant_id = ?`,
+      [owner.tenantId],
+    );
+    expect(rows).toEqual([]);
+
+    const events = app.get<DomainEventPublisher>(DOMAIN_EVENTS);
+    const unitOfWork = app.get<UnitOfWork>(UNIT_OF_WORK);
+    const eventId = randomUUID();
+    await expect(
+      unitOfWork.run(async (tx) => {
+        await events.publish(
+          {
+            id: eventId,
+            tenantId: owner.tenantId,
+            aggregateType: 'order',
+            aggregateId: randomUUID(),
+            type: 'order.created',
+            availableAt: new Date(),
+            payload: {
+              orderId: randomUUID(),
+              orderNumber: 1,
+              storeId: randomUUID(),
+              status: 'NEW',
+              fulfillment: 'PICKUP',
+              occurredAt: new Date().toISOString(),
+            },
+          },
+          tx,
+        );
+        throw new DomainException(
+          'CONSENT_REQUIRED',
+          'Operational consent is required',
+          400,
+        );
+      }),
+    ).rejects.toBeInstanceOf(DomainException);
+    const leaked: unknown[] = await dataSource.query(
+      `SELECT id FROM outbox_events WHERE id = ?`,
+      [eventId],
+    );
+    expect(leaked).toEqual([]);
+  });
+
+  it('requeues a failed outbox event only for a platform admin', async () => {
+    const owner = await createOwner('outbox-requeue', 'Outbox Requeue');
+    const dataSource = app.get(DataSource);
+    const eventId = randomUUID();
+    const now = new Date();
+    await dataSource.query(
+      `INSERT INTO outbox_events (
+         id, tenant_id, aggregate_type, aggregate_id, type, payload, status,
+         attempts, available_at, processed_at, last_error, locked_by, created_at
+       ) VALUES (?, ?, 'order', ?, 'order.created', ?, 'FAILED', 5, ?, NULL, 'failed', NULL, ?)`,
+      [
+        eventId,
+        owner.tenantId,
+        randomUUID(),
+        JSON.stringify({ orderId: randomUUID(), status: 'NEW' }),
+        now,
+        now,
+      ],
+    );
+    const admin = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: adminEmail, password: adminPassword })
+      .expect(200);
+    const denied = await request(app.getHttpServer())
+      .post(`/api/v1/platform/outbox/${eventId}/requeue`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(403);
+    expect(denied.body.error.code).toBe('FORBIDDEN');
+    const requeued = await request(app.getHttpServer())
+      .post(`/api/v1/platform/outbox/${eventId}/requeue`)
+      .set('Authorization', `Bearer ${admin.body.accessToken as string}`)
+      .expect(200);
+    expect(requeued.body).toEqual({ id: eventId, status: 'PENDING' });
+    const stored: Array<{ status: string; attempts: number | string }> =
+      await dataSource.query(
+        `SELECT status, attempts FROM outbox_events WHERE id = ?`,
+        [eventId],
+      );
+    expect(stored[0]?.status).toBe('PENDING');
+    expect(Number(stored[0]?.attempts)).toBe(0);
+    const second = await request(app.getHttpServer())
+      .post(`/api/v1/platform/outbox/${eventId}/requeue`)
+      .set('Authorization', `Bearer ${admin.body.accessToken as string}`)
+      .expect(409);
+    expect(second.body.error.code).toBe('OUTBOX_NOT_FAILED');
+    const missing = await request(app.getHttpServer())
+      .post(`/api/v1/platform/outbox/${randomUUID()}/requeue`)
+      .set('Authorization', `Bearer ${admin.body.accessToken as string}`)
+      .expect(404);
+    expect(missing.body.error.code).toBe('OUTBOX_NOT_FOUND');
+  });
+
+  async function outboxRows(
+    dataSource: DataSource,
+    orderId: string,
+  ): Promise<Array<{ type: string; status: string; payload: unknown }>> {
+    return dataSource.query(
+      `SELECT type, status, payload
+       FROM outbox_events
+       WHERE aggregate_id = ?
+       ORDER BY created_at ASC, id ASC`,
+      [orderId],
+    );
+  }
 
   async function count(
     dataSource: DataSource,

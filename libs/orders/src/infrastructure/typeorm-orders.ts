@@ -1,9 +1,17 @@
 import { DatabaseReady } from '@ciadelivery/shared';
 import { Injectable } from '@nestjs/common';
 import { TransactionContext } from '@ciadelivery/tenancy/domain';
-import { EntityManager } from 'typeorm';
+import {
+  Between,
+  EntityManager,
+  FindOptionsWhere,
+  In,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+} from 'typeorm';
 import { Fulfillment } from '../domain/delivery-quote';
 import {
+  AdminOrderDetail,
   AdminOrderSummary,
   CreatedOrder,
   OrderAddress,
@@ -16,6 +24,8 @@ import {
   NewOrderHistory,
   NewOrderItem,
   OrderRepository,
+  OrderStatusChange,
+  StoreOrderListQuery,
 } from '../domain/order-repository';
 import { OrderActorType } from '../domain/order';
 import { OrderStatus, isOrderStatus } from '../domain/order-status';
@@ -190,15 +200,25 @@ export class TypeOrmOrders implements OrderRepository {
   async listForStore(
     tenantId: string,
     storeId: string,
-    page: number,
-    pageSize: number,
+    query: StoreOrderListQuery,
   ): Promise<{ data: AdminOrderSummary[]; total: number }> {
     const manager = await this.manager();
+    const where: FindOptionsWhere<OrderEntity> = { tenantId, storeId };
+    if (query.statuses !== null && query.statuses.length > 0) {
+      where.status = In([...query.statuses]);
+    }
+    if (query.from !== null && query.to !== null) {
+      where.createdAt = Between(query.from, query.to);
+    } else if (query.from !== null) {
+      where.createdAt = MoreThanOrEqual(query.from);
+    } else if (query.to !== null) {
+      where.createdAt = LessThanOrEqual(query.to);
+    }
     const [rows, total] = await manager.findAndCount(OrderEntity, {
-      where: { tenantId, storeId },
+      where,
       order: { createdAt: 'DESC', id: 'DESC' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      skip: (query.page - 1) * query.pageSize,
+      take: query.pageSize,
     });
     return { data: rows.map(toAdminOrder), total };
   }
@@ -213,6 +233,77 @@ export class TypeOrmOrders implements OrderRepository {
       where: { id: orderId, tenantId, storeId },
     });
     return row === null ? null : toAdminOrder(row);
+  }
+
+  async findDetailForStore(
+    tenantId: string,
+    storeId: string,
+    orderId: string,
+  ): Promise<AdminOrderDetail | null> {
+    const manager = await this.manager();
+    const order = await manager.findOne(OrderEntity, {
+      where: { id: orderId, tenantId, storeId },
+    });
+    if (order === null) {
+      return null;
+    }
+    const items = await manager.find(OrderItemEntity, {
+      where: { tenantId, orderId },
+      order: { position: 'ASC', id: 'ASC' },
+    });
+    const history = await manager.find(OrderStatusHistoryEntity, {
+      where: { tenantId, orderId },
+      order: { createdAt: 'ASC', id: 'ASC' },
+    });
+    return toAdminDetail(order, items, history);
+  }
+
+  async lockForStore(
+    tenantId: string,
+    storeId: string,
+    orderId: string,
+    tx: TransactionContext,
+  ): Promise<AdminOrderSummary | null> {
+    const row = await managerOf(tx)
+      .createQueryBuilder(OrderEntity, 'order')
+      .setLock('pessimistic_write')
+      .where('order.id = :orderId', { orderId })
+      .andWhere('order.tenantId = :tenantId', { tenantId })
+      .andWhere('order.storeId = :storeId', { storeId })
+      .getOne();
+    return row === null ? null : toAdminOrder(row);
+  }
+
+  async applyTransition(
+    change: OrderStatusChange,
+    tx: TransactionContext,
+  ): Promise<boolean> {
+    const manager = managerOf(tx);
+    const result = await manager.update(
+      OrderEntity,
+      {
+        id: change.orderId,
+        tenantId: change.tenantId,
+        storeId: change.storeId,
+        status: change.fromStatus,
+      },
+      { status: change.toStatus, updatedAt: change.updatedAt },
+    );
+    if (result.affected !== 1) {
+      return false;
+    }
+    await manager.insert(OrderStatusHistoryEntity, {
+      id: change.historyId,
+      tenantId: change.tenantId,
+      orderId: change.orderId,
+      fromStatus: change.fromStatus,
+      toStatus: change.toStatus,
+      actorType: 'USER',
+      actorId: change.actorId,
+      note: change.note,
+      createdAt: change.updatedAt,
+    });
+    return true;
   }
 
   private async manager(): Promise<EntityManager> {
@@ -247,6 +338,34 @@ function toAdminOrder(order: OrderEntity): AdminOrderSummary {
     totalCents: Number(order.totalCents),
     status: order.status,
     fulfillment: order.fulfillment,
+    customerName: order.customerName,
+  };
+}
+
+function toAdminDetail(
+  order: OrderEntity,
+  items: readonly OrderItemEntity[],
+  history: readonly OrderStatusHistoryEntity[],
+): AdminOrderDetail {
+  const published = toPublicOrder(order, items, history);
+  return {
+    id: published.orderId,
+    orderNumber: published.orderNumber,
+    status: published.status,
+    fulfillment: published.fulfillment,
+    paymentMethodCode: published.paymentMethodCode,
+    paymentLabel: published.paymentLabel,
+    paymentInstructions: published.paymentInstructions,
+    customerName: published.customerName,
+    customerPhone: published.customerPhone,
+    address: published.address,
+    notes: published.notes,
+    subtotalCents: published.subtotalCents,
+    deliveryFeeCents: published.deliveryFeeCents,
+    totalCents: published.totalCents,
+    createdAt: published.createdAt,
+    items: published.items,
+    history: published.history,
   };
 }
 

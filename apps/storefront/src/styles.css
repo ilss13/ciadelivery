@@ -324,6 +324,15 @@ button:disabled {
   font-weight: 700;
 }
 
+.reconnect,
+.timeline-note {
+  margin: 0;
+}
+
+.reconnect {
+  color: var(--brand-accent);
+}
+
 @media (min-width: 48rem) {
   .store {
     max-width: 64rem;

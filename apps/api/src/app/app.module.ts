@@ -4,6 +4,7 @@ import { BrandingModule } from '@ciadelivery/branding';
 import { CatalogModule } from '@ciadelivery/catalog';
 import { CustomersModule } from '@ciadelivery/customers';
 import { LeadsModule } from '@ciadelivery/leads';
+import { NotificationsModule } from '@ciadelivery/notifications';
 import { OrdersModule } from '@ciadelivery/orders';
 import { PlatformModule, StorageModule } from '@ciadelivery/shared';
 import { AppController } from './app.controller';
@@ -20,6 +21,7 @@ import { PlatformTenantsModule } from './platform-tenants.module';
     CatalogModule,
     CustomersModule,
     OrdersModule,
+    NotificationsModule,
     LeadsModule,
   ],
   controllers: [AppController],

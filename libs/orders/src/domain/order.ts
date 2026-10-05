@@ -27,6 +27,27 @@ export interface AdminOrderSummary {
   totalCents: number;
   status: OrderStatus;
   fulfillment: Fulfillment;
+  customerName: string;
+}
+
+export interface AdminOrderDetail {
+  id: string;
+  orderNumber: number;
+  status: OrderStatus;
+  fulfillment: Fulfillment;
+  paymentMethodCode: string;
+  paymentLabel: string;
+  paymentInstructions: string | null;
+  customerName: string;
+  customerPhone: string;
+  address: OrderAddress | null;
+  notes: string | null;
+  subtotalCents: number;
+  deliveryFeeCents: number;
+  totalCents: number;
+  createdAt: Date;
+  items: PublicOrderItem[];
+  history: PublicOrderHistoryEntry[];
 }
 
 export interface OrderReviewItem {

@@ -2,8 +2,18 @@ import { DomainException } from '@ciadelivery/shared';
 import { CurrentStore } from '@ciadelivery/stores';
 import { RequestActor } from '@ciadelivery/users';
 import { requireActorStore } from '@ciadelivery/customers';
-import { AdminOrderSummary } from '../domain/order';
+import { AdminOrderDetail, AdminOrderSummary } from '../domain/order';
+import { orderListBounds } from '../domain/order-list';
+import { OrderStatus } from '../domain/order-status';
 import { OrderRepository } from '../domain/order-repository';
+
+export interface AdminOrderListInput {
+  page?: number;
+  pageSize?: number;
+  status?: readonly OrderStatus[];
+  from?: string;
+  to?: string;
+}
 
 export interface AdminOrderPage {
   data: AdminOrderSummary[];
@@ -23,16 +33,19 @@ export class AdminOrders {
 
   async list(
     actor: RequestActor,
-    page: number,
-    pageSize: number,
+    query: AdminOrderListInput,
   ): Promise<AdminOrderPage> {
     const store = await requireActorStore(actor, this.stores);
-    const listed = await this.orders.listForStore(
-      store.tenantId,
-      store.id,
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+    const bounds = orderListBounds(query.from, query.to);
+    const listed = await this.orders.listForStore(store.tenantId, store.id, {
       page,
       pageSize,
-    );
+      statuses: query.status ?? null,
+      from: bounds.from,
+      to: bounds.to,
+    });
     return {
       data: listed.data,
       meta: {
@@ -45,9 +58,9 @@ export class AdminOrders {
     };
   }
 
-  async get(actor: RequestActor, orderId: string): Promise<AdminOrderSummary> {
+  async get(actor: RequestActor, orderId: string): Promise<AdminOrderDetail> {
     const store = await requireActorStore(actor, this.stores);
-    const order = await this.orders.findForStore(
+    const order = await this.orders.findDetailForStore(
       store.tenantId,
       store.id,
       orderId,

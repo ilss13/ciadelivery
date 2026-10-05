@@ -97,6 +97,8 @@ export interface PublicOrder {
   history: Array<{
     toStatus: string;
     createdAt: string;
+    note?: string | null;
+    actorType?: string;
   }>;
 }
 
