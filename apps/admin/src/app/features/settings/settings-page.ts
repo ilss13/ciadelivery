@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
@@ -18,6 +18,7 @@ import {
   mediaUrl,
 } from '../../shared/image-file';
 import { centsToReais, reaisToCents } from './money';
+import { PaymentMethodsSection } from './payment-methods';
 
 const WEEKDAYS = [
   'Domingo',
@@ -71,13 +72,14 @@ interface BusinessHour {
 
 @Component({
   selector: 'admin-settings-page',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, PaymentMethodsSection],
   templateUrl: './settings-page.html',
 })
 export class SettingsPage implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly formBuilder = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly paymentMethods = viewChild(PaymentMethodsSection);
 
   readonly weekdays = WEEKDAYS;
   readonly loading = signal(true);
@@ -154,7 +156,9 @@ export class SettingsPage implements OnInit {
   }
 
   hasUnsavedChanges(): boolean {
-    return this.form.dirty;
+    return (
+      this.form.dirty || (this.paymentMethods()?.hasUnsavedChanges() ?? false)
+    );
   }
 
   save(): void {

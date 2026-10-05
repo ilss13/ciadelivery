@@ -1,0 +1,152 @@
+<main class="checkout">
+  <p><a routerLink="/">Voltar ao cardápio</a></p>
+  <h1>Checkout</h1>
+
+  @if (loading()) {
+  <p>Carregando…</p>
+  } @else if (lines().length === 0) {
+  <p>Seu carrinho está vazio.</p>
+  } @else {
+  @if (step() === 'contact') {
+  <section>
+    <h2>Seus dados</h2>
+    <label>
+      Nome
+      <input [formControl]="form.controls.name" autocomplete="name" />
+    </label>
+    <label>
+      Telefone
+      <input [formControl]="form.controls.phone" inputmode="tel" autocomplete="tel" />
+    </label>
+    <button type="button" (click)="continue()">Continuar</button>
+  </section>
+  }
+
+  @if (step() === 'fulfillment') {
+  <section>
+    <h2>Como você quer receber</h2>
+    @if (options()?.deliveryEnabled) {
+    <label class="choice">
+      <input type="radio" value="DELIVERY" [formControl]="form.controls.fulfillment" />
+      Entrega
+    </label>
+    } @if (options()?.pickupEnabled) {
+    <label class="choice">
+      <input type="radio" value="PICKUP" [formControl]="form.controls.fulfillment" />
+      Retirada
+    </label>
+    }
+    <div class="actions">
+      <button type="button" class="secondary" (click)="back()">Voltar</button>
+      <button type="button" (click)="continue()">Continuar</button>
+    </div>
+  </section>
+  }
+
+  @if (step() === 'address') {
+  <section>
+    <h2>Endereço de entrega</h2>
+    <label>
+      Rua
+      <input [formControl]="form.controls.line" autocomplete="address-line1" />
+    </label>
+    <label>
+      Número
+      <input [formControl]="form.controls.number" />
+    </label>
+    <label>
+      Complemento
+      <input [formControl]="form.controls.complement" />
+    </label>
+    <label>
+      Bairro
+      <input [formControl]="form.controls.district" />
+    </label>
+    <label>
+      Cidade
+      <input [formControl]="form.controls.city" autocomplete="address-level2" />
+    </label>
+    <label>
+      Estado
+      <input [formControl]="form.controls.state" maxlength="2" autocomplete="address-level1" />
+    </label>
+    <label>
+      CEP
+      <input [formControl]="form.controls.postalCode" inputmode="numeric" autocomplete="postal-code" />
+    </label>
+    <div class="actions">
+      <button type="button" class="secondary" (click)="back()">Voltar</button>
+      <button type="button" (click)="continue()">Continuar</button>
+    </div>
+  </section>
+  }
+
+  @if (step() === 'payment') {
+  <section>
+    <h2>Pagamento</h2>
+    @for (method of options()?.paymentMethods ?? []; track method.code) {
+    <label class="choice">
+      <input type="radio" [value]="method.code" [formControl]="form.controls.paymentMethodCode" />
+      {{ method.label }}
+    </label>
+    @if (form.controls.paymentMethodCode.value === method.code && method.instructions) {
+    <p>{{ method.instructions }}</p>
+    }
+    }
+    <div class="actions">
+      <button type="button" class="secondary" (click)="back()">Voltar</button>
+      <button type="button" (click)="continue()">Continuar</button>
+    </div>
+  </section>
+  }
+
+  @if (step() === 'review') {
+  <section aria-label="Revisão">
+    <h2>Revisão</h2>
+    @if (reviewing()) {
+    <p>Calculando a entrega…</p>
+    } @if (review(); as priced) {
+    <ul class="cart-lines">
+      @for (item of priced.items; track $index) {
+      <li>
+        <p class="product-name">{{ item.quantity }}× {{ item.productName }}</p>
+        @for (option of item.options; track option.name) {
+        <p class="option-name">{{ option.name }}</p>
+        }
+        <p class="price">{{ format(item.subtotalCents) }}</p>
+      </li>
+      }
+    </ul>
+    <p>Subtotal {{ format(priced.subtotalCents) }}</p>
+    <p>Taxa de entrega {{ format(priced.deliveryFeeCents) }}</p>
+    <p class="subtotal">Total {{ format(priced.totalCents) }}</p>
+    <p>Pagamento: {{ priced.paymentLabel }}</p>
+    @if (priced.paymentInstructions) {
+    <p>{{ priced.paymentInstructions }}</p>
+    }
+    <label class="choice">
+      <input type="checkbox" [formControl]="form.controls.operational" />
+      Autorizo o uso do meu nome e telefone para realizar e acompanhar este pedido.
+    </label>
+    <label class="choice">
+      <input type="checkbox" [formControl]="form.controls.marketing" />
+      Quero receber ofertas desta loja (opcional).
+    </label>
+    <button type="button" [disabled]="placing()" (click)="placeOrder()">
+      {{ placing() ? 'Enviando…' : 'Fazer pedido' }}
+    </button>
+    }
+    <div class="actions">
+      <button type="button" class="secondary" (click)="back()">Voltar</button>
+      @if (!reviewing() && review() === null) {
+      <button type="button" (click)="loadReview()">Tentar de novo</button>
+      }
+    </div>
+  </section>
+  }
+
+  @if (error()) {
+  <p class="line-error" role="alert">{{ error() }}</p>
+  }
+  }
+</main>

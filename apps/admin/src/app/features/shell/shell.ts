@@ -1,6 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
-import { canConfigure, canManageCatalog } from '../../core/access';
+import {
+  canConfigure,
+  canManageCatalog,
+  canReadCustomers,
+  canReadOrders,
+} from '../../core/access';
 import { SessionService } from '../../core/session.service';
 
 @Component({
@@ -20,6 +25,14 @@ export class ShellPage {
 
   canManageCatalog(): boolean {
     return canManageCatalog(this.user());
+  }
+
+  canReadCustomers(): boolean {
+    return canReadCustomers(this.user());
+  }
+
+  canReadOrders(): boolean {
+    return canReadOrders(this.user());
   }
 
   logout(): void {

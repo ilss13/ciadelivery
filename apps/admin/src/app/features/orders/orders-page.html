@@ -1,0 +1,22 @@
+<h1>Pedidos</h1>
+
+@if (loading()) {
+<p>Carregando…</p>
+} @else if (error()) {
+<p class="error" role="alert">{{ error() }}</p>
+<button type="button" (click)="load()">Tentar de novo</button>
+} @else if (orders().length === 0) {
+<p>Nenhum pedido ainda.</p>
+} @else {
+<ul class="list">
+  @for (order of orders(); track order.id) {
+  <li class="item">
+    <strong>Pedido {{ order.orderNumber }}</strong>
+    <span>{{ when(order.createdAt) }}</span>
+    <span>{{ format(order.totalCents) }}</span>
+    <span>{{ status(order.status) }}</span>
+    <span>{{ fulfillment(order.fulfillment) }}</span>
+  </li>
+  }
+</ul>
+}

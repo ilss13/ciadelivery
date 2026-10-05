@@ -1,0 +1,22 @@
+{
+  "name": "@ciadelivery/customers",
+  "version": "0.0.1",
+  "private": true,
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "dependencies": {
+    "@ciadelivery/shared": "0.0.1",
+    "@ciadelivery/stores": "0.0.1",
+    "@ciadelivery/tenancy": "0.0.1",
+    "@ciadelivery/users": "0.0.1",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/swagger": "^11.4.7",
+    "@nestjs/typeorm": "^11.0.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "ioredis": "^5.11.1",
+    "tslib": "^2.3.0",
+    "typeorm": "^0.3.31"
+  }
+}

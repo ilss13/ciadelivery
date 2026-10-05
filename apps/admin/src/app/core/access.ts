@@ -12,6 +12,18 @@ export function canConfigure(
   return user !== null && user.permissions.includes('store.configure');
 }
 
+export function canReadOrders(
+  user: { permissions: readonly string[] } | null,
+): boolean {
+  return user !== null && user.permissions.includes('orders.read');
+}
+
+export function canReadCustomers(
+  user: { permissions: readonly string[] } | null,
+): boolean {
+  return user !== null && user.permissions.includes('customers.read');
+}
+
 export function canManageCatalog(
   user: { permissions: readonly string[] } | null,
 ): boolean {

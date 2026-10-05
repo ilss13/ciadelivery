@@ -17,6 +17,10 @@ export interface StoreRecord {
   longitude: number | null;
   minimumOrderCents: number;
   isManuallyClosed: boolean;
+  pickupEnabled: boolean;
+  deliveryEnabled: boolean;
+  deliveryFlatFeeCents: number;
+  estimatedPrepMinutes: number;
   timezone: string;
   createdAt: Date;
   updatedAt: Date;

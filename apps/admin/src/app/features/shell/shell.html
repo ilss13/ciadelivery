@@ -6,6 +6,10 @@
   <a routerLink="/configuracoes">Configurações</a>
   } @if (canManageCatalog()) {
   <a routerLink="/cardapio">Cardápio</a>
+  } @if (canReadOrders()) {
+  <a routerLink="/pedidos">Pedidos</a>
+  } @if (canReadCustomers()) {
+  <a routerLink="/clientes">Clientes</a>
   }
   <button type="button" (click)="logout()">Sair</button>
 </header>

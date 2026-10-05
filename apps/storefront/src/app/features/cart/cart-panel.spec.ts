@@ -1,4 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -15,7 +16,7 @@ describe('CartPanel', () => {
     sessionStorage.clear();
     await TestBed.configureTestingModule({
       imports: [CartPanel],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
     fixture = TestBed.createComponent(CartPanel);
     http = TestBed.inject(HttpTestingController);

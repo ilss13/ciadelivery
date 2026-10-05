@@ -15,6 +15,7 @@ export interface CartOptionSnapshot {
 
 export interface CartGroupSnapshot {
   id: string;
+  name: string;
   minSelect: number;
   maxSelect: number;
   options: readonly CartOptionSnapshot[];
@@ -25,12 +26,14 @@ export interface CartProductSnapshot {
   active: boolean;
   available: boolean;
   name: string;
+  sku: string | null;
   priceCents: number;
   groups: readonly CartGroupSnapshot[];
 }
 
 export interface PricedCartOption {
   id: string;
+  groupName: string;
   name: string;
   priceCents: number;
 }
@@ -39,6 +42,7 @@ export interface PricedCartItem {
   itemIndex: number;
   productId: string;
   name: string;
+  sku: string | null;
   quantity: number;
   unitPriceCents: number;
   options: PricedCartOption[];
@@ -224,20 +228,24 @@ function validateItem(
   const extras = chosen.reduce((sum, option) => sum + option.priceCents, 0);
   return {
     errors,
-    priced: {
-      itemIndex: index,
-      productId: product.id,
-      name: product.name,
-      quantity: request.quantity,
-      unitPriceCents: product.priceCents,
-      options: chosen.map((option) => ({
-        id: option.id,
-        name: option.name,
-        priceCents: option.priceCents,
-      })),
-      notes: notes ?? null,
-      subtotalCents: (product.priceCents + extras) * request.quantity,
-    },
+      priced: {
+        itemIndex: index,
+        productId: product.id,
+        name: product.name,
+        sku: product.sku,
+        quantity: request.quantity,
+        unitPriceCents: product.priceCents,
+        options: chosen.map((option) => ({
+          id: option.id,
+          groupName:
+            product.groups.find((group) => group.id === option.groupId)?.name ??
+            '',
+          name: option.name,
+          priceCents: option.priceCents,
+        })),
+        notes: notes ?? null,
+        subtotalCents: (product.priceCents + extras) * request.quantity,
+      },
   };
 }
 

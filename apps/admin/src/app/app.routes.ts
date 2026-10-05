@@ -1,6 +1,13 @@
 import { Route } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth.guard';
-import { catalogGuard, configureGuard } from './core/settings.guard';
+import {
+  catalogGuard,
+  configureGuard,
+  customersGuard,
+  ordersGuard,
+} from './core/settings.guard';
+import { CustomersPage } from './features/customers/customers-page';
+import { OrdersPage } from './features/orders/orders-page';
 import { CatalogPage } from './features/catalog/catalog-page';
 import { ProductEditor } from './features/catalog/product-editor';
 import { HomePage, HomeRedirect } from './features/home/home-page';
@@ -42,6 +49,16 @@ export const appRoutes: Route[] = [
         path: 'cardapio',
         component: CatalogPage,
         canActivate: [catalogGuard],
+      },
+      {
+        path: 'clientes',
+        component: CustomersPage,
+        canActivate: [customersGuard],
+      },
+      {
+        path: 'pedidos',
+        component: OrdersPage,
+        canActivate: [ordersGuard],
       },
       { path: 'inicio', component: HomePage },
       { path: '', pathMatch: 'full', component: HomeRedirect },

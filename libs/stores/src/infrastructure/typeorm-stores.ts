@@ -47,6 +47,10 @@ export class TypeOrmStores implements Stores {
       longitude: null,
       minimumOrderCents: 0,
       isManuallyClosed: false,
+      pickupEnabled: true,
+      deliveryEnabled: true,
+      deliveryFlatFeeCents: 0,
+      estimatedPrepMinutes: 40,
       timezone: this.config.storeTimezone,
       createdAt: now,
       updatedAt: now,
@@ -61,6 +65,30 @@ export class TypeOrmStores implements Stores {
 
       throw error;
     }
+
+    await manager.query(
+      `INSERT INTO \`payment_methods\` (
+        \`id\`, \`tenant_id\`, \`store_id\`, \`code\`, \`label\`, \`instructions\`, \`enabled\`, \`sort_order\`
+      ) VALUES
+        (?, ?, ?, 'CASH', 'Dinheiro', NULL, 1, 0),
+        (?, ?, ?, 'CARD_ON_DELIVERY', 'Cartão na entrega', NULL, 0, 1),
+        (?, ?, ?, 'PIX_MANUAL', 'PIX', NULL, 0, 2),
+        (?, ?, ?, 'PAY_ON_PICKUP', 'Pagar na retirada', NULL, 1, 3)`,
+      [
+        randomUUID(),
+        record.tenantId,
+        record.id,
+        randomUUID(),
+        record.tenantId,
+        record.id,
+        randomUUID(),
+        record.tenantId,
+        record.id,
+        randomUUID(),
+        record.tenantId,
+        record.id,
+      ],
+    );
 
     return record;
   }
@@ -194,6 +222,10 @@ function toRow(record: StoreRecord): StoreEntity {
     longitude: record.longitude,
     minimumOrderCents: record.minimumOrderCents,
     isManuallyClosed: record.isManuallyClosed,
+    pickupEnabled: record.pickupEnabled,
+    deliveryEnabled: record.deliveryEnabled,
+    deliveryFlatFeeCents: record.deliveryFlatFeeCents,
+    estimatedPrepMinutes: record.estimatedPrepMinutes,
     timezone: record.timezone,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
@@ -218,6 +250,10 @@ function toRecord(row: StoreEntity): StoreRecord {
     longitude: row.longitude,
     minimumOrderCents: row.minimumOrderCents,
     isManuallyClosed: row.isManuallyClosed,
+    pickupEnabled: row.pickupEnabled,
+    deliveryEnabled: row.deliveryEnabled,
+    deliveryFlatFeeCents: row.deliveryFlatFeeCents,
+    estimatedPrepMinutes: row.estimatedPrepMinutes,
     timezone: row.timezone,
     createdAt: new Date(row.createdAt),
     updatedAt: new Date(row.updatedAt),

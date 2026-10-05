@@ -1,0 +1,46 @@
+<h1>Clientes</h1>
+<p class="muted">Busque pelo telefone. O mesmo número é outra pessoa em outra loja.</p>
+
+<form class="stack" [formGroup]="form" (ngSubmit)="search()" novalidate>
+  <label>
+    Telefone
+    <input formControlName="phone" inputmode="tel" autocomplete="tel" />
+  </label>
+  <button type="submit" [disabled]="loading()">
+    {{ loading() ? 'Buscando…' : 'Buscar' }}
+  </button>
+</form>
+
+@if (error()) {
+<p class="error" role="status">{{ error() }}</p>
+}
+
+@if (searched() && customers().length === 0 && !error()) {
+<p>Nenhum cliente com esse telefone.</p>
+}
+
+<ul class="list">
+  @for (customer of customers(); track customer.id) {
+  <li class="item">
+    <strong>{{ customer.name }}</strong>
+    <span>{{ phoneLabel(customer.phone) }}</span>
+    <button type="button" (click)="open(customer.id)">Ver endereços</button>
+  </li>
+  }
+</ul>
+
+@if (detail(); as customer) {
+<section class="item">
+  <h2>{{ customer.name }}</h2>
+  <p>{{ phoneLabel(customer.phone) }}</p>
+  @if (customer.addresses.length === 0) {
+  <p class="muted">Nenhum endereço cadastrado.</p>
+  } @else {
+  <ul class="list">
+    @for (address of customer.addresses; track address.id) {
+    <li>{{ addressLabel(address) }}</li>
+    }
+  </ul>
+  }
+</section>
+}

@@ -11,10 +11,12 @@ function margherita(
     active: true,
     available: true,
     name: 'Margherita',
+    sku: null,
     priceCents: 3990,
     groups: [
       {
         id: 'size',
+        name: 'Tamanho',
         minSelect: 1,
         maxSelect: 1,
         options: [
@@ -29,6 +31,7 @@ function margherita(
       },
       {
         id: 'extras',
+        name: 'Extras',
         minSelect: 0,
         maxSelect: 1,
         options: [
@@ -151,9 +154,17 @@ describe('validateCart', () => {
         itemIndex: 0,
         productId: 'product-1',
         name: 'Margherita',
+        sku: null,
         quantity: 2,
         unitPriceCents: 3990,
-        options: [{ id: 'grande', name: 'Grande', priceCents: 1000 }],
+        options: [
+          {
+            id: 'grande',
+            groupName: 'Tamanho',
+            name: 'Grande',
+            priceCents: 1000,
+          },
+        ],
         notes: 'sem cebola',
         subtotalCents: 9980,
       },
@@ -182,7 +193,12 @@ describe('validateCart', () => {
     ]);
     expect(result.subtotalCents).toBe(0);
     expect(result.items[0]?.options).toEqual([
-      { id: 'grande', name: 'Grande', priceCents: 1000 },
+      {
+        id: 'grande',
+        groupName: 'Tamanho',
+        name: 'Grande',
+        priceCents: 1000,
+      },
     ]);
   });
 
@@ -327,7 +343,12 @@ describe('validateCart', () => {
       expect.objectContaining({ code: 'OPTION_UNAVAILABLE', itemIndex: 0 }),
     ]);
     expect(result.items[0]?.options).toEqual([
-      { id: 'grande', name: 'Grande', priceCents: 1000 },
+      {
+        id: 'grande',
+        groupName: 'Tamanho',
+        name: 'Grande',
+        priceCents: 1000,
+      },
     ]);
   });
 

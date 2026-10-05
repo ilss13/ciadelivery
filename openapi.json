@@ -1695,6 +1695,417 @@
         ]
       }
     },
+    "/api/v1/public/customers/identify": {
+      "post": {
+        "operationId": "PublicCustomersController_identify",
+        "parameters": [
+          {
+            "name": "X-Tenant-Host",
+            "in": "header",
+            "description": "Replaces the Host header only when NODE_ENV is local or development",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdentifyCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentifiedCustomerResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "public-customers"
+        ]
+      }
+    },
+    "/api/v1/admin/customers": {
+      "get": {
+        "operationId": "AdminCustomersController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "phone",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "11988887777",
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerPageResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-customers"
+        ]
+      }
+    },
+    "/api/v1/admin/customers/{id}": {
+      "get": {
+        "operationId": "AdminCustomersController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-customers"
+        ]
+      }
+    },
+    "/api/v1/admin/payment-methods": {
+      "get": {
+        "operationId": "AdminPaymentMethodsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethodListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-payment-methods"
+        ]
+      },
+      "put": {
+        "operationId": "AdminPaymentMethodsController_replace",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplacePaymentMethodsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethodListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-payment-methods"
+        ]
+      }
+    },
+    "/api/v1/public/orders/review": {
+      "post": {
+        "operationId": "PublicOrdersController_review",
+        "parameters": [
+          {
+            "name": "X-Tenant-Host",
+            "in": "header",
+            "description": "Replaces the Host header only when NODE_ENV is local or development",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderReviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "public-orders"
+        ]
+      }
+    },
+    "/api/v1/public/orders": {
+      "post": {
+        "operationId": "PublicOrdersController_create",
+        "parameters": [
+          {
+            "name": "X-Tenant-Host",
+            "in": "header",
+            "description": "Replaces the Host header only when NODE_ENV is local or development",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedOrderResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "public-orders"
+        ]
+      }
+    },
+    "/api/v1/public/orders/{trackingToken}": {
+      "get": {
+        "operationId": "PublicOrdersController_get",
+        "parameters": [
+          {
+            "name": "trackingToken",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicOrderResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "public-orders"
+        ]
+      }
+    },
+    "/api/v1/public/checkout": {
+      "get": {
+        "operationId": "PublicCheckoutController_get",
+        "parameters": [
+          {
+            "name": "X-Tenant-Host",
+            "in": "header",
+            "description": "Replaces the Host header only when NODE_ENV is local or development",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicCheckoutResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "public-checkout"
+        ]
+      }
+    },
+    "/api/v1/admin/orders": {
+      "get": {
+        "operationId": "AdminOrdersController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOrderPageResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-orders"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{id}": {
+      "get": {
+        "operationId": "AdminOrdersController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOrderResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-orders"
+        ]
+      }
+    },
     "/api/v1/public/leads": {
       "post": {
         "operationId": "PublicLeadsController_create",
@@ -3165,6 +3576,9 @@
           "id": {
             "type": "string"
           },
+          "groupName": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -3174,6 +3588,7 @@
         },
         "required": [
           "id",
+          "groupName",
           "name",
           "priceCents"
         ]
@@ -3189,6 +3604,10 @@
           },
           "name": {
             "type": "string"
+          },
+          "sku": {
+            "type": "string",
+            "nullable": true
           },
           "quantity": {
             "type": "number"
@@ -3214,6 +3633,7 @@
           "itemIndex",
           "productId",
           "name",
+          "sku",
           "quantity",
           "unitPriceCents",
           "options",
@@ -3280,6 +3700,1002 @@
           "storeOpen",
           "valid",
           "errors"
+        ]
+      },
+      "IdentifyCustomerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Ana"
+          },
+          "phone": {
+            "type": "string",
+            "example": "11988887777"
+          }
+        },
+        "required": [
+          "name",
+          "phone"
+        ]
+      },
+      "IdentifiedCustomerResponse": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "customerId",
+          "name",
+          "phone"
+        ]
+      },
+      "CustomerResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PageMetaDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ]
+      },
+      "CustomerPageResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerResponse"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "CustomerAddressResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "line": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "complement": {
+            "type": "string",
+            "nullable": true
+          },
+          "district": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "line",
+          "number",
+          "complement",
+          "district",
+          "city",
+          "state",
+          "postalCode",
+          "latitude",
+          "longitude",
+          "createdAt"
+        ]
+      },
+      "CustomerDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerAddressResponse"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "createdAt",
+          "updatedAt",
+          "addresses"
+        ]
+      },
+      "PaymentMethodResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "CASH",
+              "CARD_ON_DELIVERY",
+              "PIX_MANUAL",
+              "PAY_ON_PICKUP",
+              "OTHER"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "code",
+          "label",
+          "instructions",
+          "enabled",
+          "sortOrder"
+        ]
+      },
+      "PaymentMethodListResponse": {
+        "type": "object",
+        "properties": {
+          "methods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentMethodResponse"
+            }
+          }
+        },
+        "required": [
+          "methods"
+        ]
+      },
+      "PaymentMethodInputDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "CASH",
+              "CARD_ON_DELIVERY",
+              "PIX_MANUAL",
+              "PAY_ON_PICKUP",
+              "OTHER"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "example": "Dinheiro"
+          },
+          "instructions": {
+            "type": "string",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "label",
+          "enabled"
+        ]
+      },
+      "ReplacePaymentMethodsDto": {
+        "type": "object",
+        "properties": {
+          "methods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentMethodInputDto"
+            }
+          }
+        },
+        "required": [
+          "methods"
+        ]
+      },
+      "OrderAddressDto": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "example": "SP"
+          },
+          "postalCode": {
+            "type": "string",
+            "example": "01001000"
+          },
+          "complement": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "line",
+          "number",
+          "district",
+          "city",
+          "state",
+          "postalCode"
+        ]
+      },
+      "CreateOrderItemDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 99
+          },
+          "optionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 280
+          }
+        },
+        "required": [
+          "productId",
+          "quantity",
+          "optionIds"
+        ]
+      },
+      "ReviewOrderDto": {
+        "type": "object",
+        "properties": {
+          "fulfillment": {
+            "type": "string",
+            "enum": [
+              "DELIVERY",
+              "PICKUP"
+            ]
+          },
+          "address": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderAddressDto"
+              }
+            ]
+          },
+          "paymentMethodCode": {
+            "type": "string",
+            "enum": [
+              "CASH",
+              "CARD_ON_DELIVERY",
+              "PIX_MANUAL",
+              "PAY_ON_PICKUP",
+              "OTHER"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateOrderItemDto"
+            }
+          }
+        },
+        "required": [
+          "fulfillment",
+          "paymentMethodCode",
+          "items"
+        ]
+      },
+      "PublicOrderOptionResponse": {
+        "type": "object",
+        "properties": {
+          "optionId": {
+            "type": "string"
+          },
+          "groupName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "priceCents": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "optionId",
+          "groupName",
+          "name",
+          "priceCents"
+        ]
+      },
+      "OrderReviewItemResponse": {
+        "type": "object",
+        "properties": {
+          "productName": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOrderOptionResponse"
+            }
+          },
+          "subtotalCents": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "productName",
+          "quantity",
+          "notes",
+          "options",
+          "subtotalCents"
+        ]
+      },
+      "OrderReviewResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderReviewItemResponse"
+            }
+          },
+          "subtotalCents": {
+            "type": "number"
+          },
+          "deliveryFeeCents": {
+            "type": "number"
+          },
+          "totalCents": {
+            "type": "number"
+          },
+          "paymentLabel": {
+            "type": "string"
+          },
+          "paymentInstructions": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "subtotalCents",
+          "deliveryFeeCents",
+          "totalCents",
+          "paymentLabel",
+          "paymentInstructions"
+        ]
+      },
+      "OrderCustomerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Ana"
+          },
+          "phone": {
+            "type": "string",
+            "example": "11988887777"
+          }
+        },
+        "required": [
+          "name",
+          "phone"
+        ]
+      },
+      "OrderConsentsDto": {
+        "type": "object",
+        "properties": {
+          "operational": {
+            "type": "boolean"
+          },
+          "marketing": {
+            "type": "boolean"
+          },
+          "policyVersion": {
+            "type": "string",
+            "example": "2026-10-02"
+          }
+        },
+        "required": [
+          "operational",
+          "marketing",
+          "policyVersion"
+        ]
+      },
+      "CreateOrderDto": {
+        "type": "object",
+        "properties": {
+          "customer": {
+            "$ref": "#/components/schemas/OrderCustomerDto"
+          },
+          "fulfillment": {
+            "type": "string",
+            "enum": [
+              "DELIVERY",
+              "PICKUP"
+            ]
+          },
+          "address": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderAddressDto"
+              }
+            ]
+          },
+          "paymentMethodCode": {
+            "type": "string",
+            "enum": [
+              "CASH",
+              "CARD_ON_DELIVERY",
+              "PIX_MANUAL",
+              "PAY_ON_PICKUP",
+              "OTHER"
+            ]
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 280
+          },
+          "consents": {
+            "$ref": "#/components/schemas/OrderConsentsDto"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateOrderItemDto"
+            }
+          }
+        },
+        "required": [
+          "customer",
+          "fulfillment",
+          "paymentMethodCode",
+          "consents",
+          "items"
+        ]
+      },
+      "CreatedOrderResponse": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string"
+          },
+          "orderNumber": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW"
+            ]
+          },
+          "totalCents": {
+            "type": "number"
+          },
+          "trackingToken": {
+            "type": "string"
+          },
+          "trackingPath": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "orderId",
+          "orderNumber",
+          "status",
+          "totalCents",
+          "trackingToken",
+          "trackingPath"
+        ]
+      },
+      "PublicOrderAddressResponse": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "complement": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "line",
+          "number",
+          "district",
+          "city",
+          "state",
+          "postalCode",
+          "complement"
+        ]
+      },
+      "PublicOrderItemResponse": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "nullable": true
+          },
+          "productName": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitPriceCents": {
+            "type": "number"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOrderOptionResponse"
+            }
+          },
+          "subtotalCents": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "productId",
+          "productName",
+          "sku",
+          "unitPriceCents",
+          "quantity",
+          "notes",
+          "options",
+          "subtotalCents"
+        ]
+      },
+      "PublicOrderHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "fromStatus": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "NEW",
+              "ACCEPTED",
+              "IN_PREPARATION",
+              "READY",
+              "OUT_FOR_DELIVERY",
+              "DELIVERED",
+              "REJECTED",
+              "CANCELLED"
+            ]
+          },
+          "toStatus": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "ACCEPTED",
+              "IN_PREPARATION",
+              "READY",
+              "OUT_FOR_DELIVERY",
+              "DELIVERED",
+              "REJECTED",
+              "CANCELLED"
+            ]
+          },
+          "actorType": {
+            "type": "string",
+            "enum": [
+              "CUSTOMER",
+              "USER",
+              "SYSTEM"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "fromStatus",
+          "toStatus",
+          "actorType",
+          "note",
+          "createdAt"
+        ]
+      },
+      "PublicOrderResponse": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string"
+          },
+          "orderNumber": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "ACCEPTED",
+              "IN_PREPARATION",
+              "READY",
+              "OUT_FOR_DELIVERY",
+              "DELIVERED",
+              "REJECTED",
+              "CANCELLED"
+            ]
+          },
+          "fulfillment": {
+            "type": "string",
+            "enum": [
+              "DELIVERY",
+              "PICKUP"
+            ]
+          },
+          "paymentMethodCode": {
+            "type": "string"
+          },
+          "paymentLabel": {
+            "type": "string"
+          },
+          "paymentInstructions": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerPhone": {
+            "type": "string"
+          },
+          "address": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicOrderAddressResponse"
+              }
+            ]
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalCents": {
+            "type": "number"
+          },
+          "deliveryFeeCents": {
+            "type": "number"
+          },
+          "totalCents": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOrderItemResponse"
+            }
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOrderHistoryResponse"
+            }
+          }
+        },
+        "required": [
+          "orderId",
+          "orderNumber",
+          "status",
+          "fulfillment",
+          "paymentMethodCode",
+          "paymentLabel",
+          "paymentInstructions",
+          "customerName",
+          "customerPhone",
+          "address",
+          "notes",
+          "subtotalCents",
+          "deliveryFeeCents",
+          "totalCents",
+          "createdAt",
+          "items",
+          "history"
+        ]
+      },
+      "PublicPaymentMethodResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "code",
+          "label",
+          "instructions",
+          "enabled",
+          "sortOrder"
+        ]
+      },
+      "PublicCheckoutResponse": {
+        "type": "object",
+        "properties": {
+          "pickupEnabled": {
+            "type": "boolean"
+          },
+          "deliveryEnabled": {
+            "type": "boolean"
+          },
+          "paymentMethods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPaymentMethodResponse"
+            }
+          }
+        },
+        "required": [
+          "pickupEnabled",
+          "deliveryEnabled",
+          "paymentMethods"
+        ]
+      },
+      "AdminOrderResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orderNumber": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCents": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "ACCEPTED",
+              "IN_PREPARATION",
+              "READY",
+              "OUT_FOR_DELIVERY",
+              "DELIVERED",
+              "REJECTED",
+              "CANCELLED"
+            ]
+          },
+          "fulfillment": {
+            "type": "string",
+            "enum": [
+              "DELIVERY",
+              "PICKUP"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "orderNumber",
+          "createdAt",
+          "totalCents",
+          "status",
+          "fulfillment"
+        ]
+      },
+      "AdminOrderPageMeta": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ]
+      },
+      "AdminOrderPageResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminOrderResponse"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/AdminOrderPageMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
         ]
       },
       "CreateLeadDto": {

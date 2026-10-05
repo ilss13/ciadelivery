@@ -67,6 +67,10 @@ export class CartStore {
     this.replace(this.lines().filter((line) => line.lineId !== lineId));
   }
 
+  clear(): void {
+    this.replace([]);
+  }
+
   rememberQuote(quote: CartQuote): void {
     const next = this.lines().map((line, index) => {
       const priced = quote.items.find((item) => item.itemIndex === index);

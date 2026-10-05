@@ -590,6 +590,9 @@ export class ValidatedCartOptionResponse {
   id!: string;
 
   @ApiProperty()
+  groupName!: string;
+
+  @ApiProperty()
   name!: string;
 
   @ApiProperty()
@@ -605,6 +608,9 @@ export class ValidatedCartItemResponse {
 
   @ApiProperty()
   name!: string;
+
+  @ApiProperty({ nullable: true, type: String })
+  sku!: string | null;
 
   @ApiProperty()
   quantity!: number;

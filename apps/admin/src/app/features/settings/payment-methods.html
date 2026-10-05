@@ -1,0 +1,42 @@
+<fieldset>
+  <legend>Pagamento offline</legend>
+  <p class="muted">
+    Dinheiro, cartão na entrega, PIX com a chave da loja e pagamento na retirada.
+    Nada disso gera cobrança.
+  </p>
+  @if (loading()) {
+  <p>Carregando formas de pagamento…</p>
+  } @else {
+  @for (method of methods(); track method.code) {
+  <div class="item">
+    <label class="check">
+      <input
+        type="checkbox"
+        [checked]="method.enabled"
+        (change)="setEnabled(method.code, $event)"
+      />
+      {{ method.label }}
+    </label>
+    @if (method.code === 'PIX_MANUAL') {
+    <label>
+      Instrução do PIX
+      <textarea
+        rows="2"
+        [value]="method.instructions ?? ''"
+        (input)="setInstructions($event)"
+      ></textarea>
+    </label>
+    }
+  </div>
+  }
+  <button type="button" (click)="save()" [disabled]="saving()">
+    {{ saving() ? 'Salvando…' : 'Salvar pagamentos' }}
+  </button>
+  }
+  @if (error()) {
+  <p class="error" role="status">{{ error() }}</p>
+  }
+  @if (notice()) {
+  <p role="status">{{ notice() }}</p>
+  }
+</fieldset>

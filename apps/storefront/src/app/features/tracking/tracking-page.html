@@ -1,0 +1,40 @@
+<main class="tracking">
+  <p><a routerLink="/">Voltar ao cardápio</a></p>
+  @if (loading()) {
+  <p>Carregando o pedido…</p>
+  } @else if (error()) {
+  <p class="line-error" role="alert">{{ error() }}</p>
+  <button type="button" (click)="load()">Tentar de novo</button>
+  } @else if (order(); as current) {
+  <h1>Pedido {{ current.orderNumber }}</h1>
+  <p class="status-label" role="status">{{ status(current.status) }}</p>
+  <p>{{ fulfillment(current.fulfillment) }} · {{ when(current.createdAt) }}</p>
+  <ul class="cart-lines">
+    @for (item of current.items; track $index) {
+    <li>
+      <p class="product-name">{{ item.quantity }}× {{ item.productName }}</p>
+      @for (option of item.options; track option.name) {
+      <p class="option-name">{{ option.name }}</p>
+      }
+      <p class="price">{{ format(item.subtotalCents) }}</p>
+    </li>
+    }
+  </ul>
+  <p>Subtotal {{ format(current.subtotalCents) }}</p>
+  <p>Taxa de entrega {{ format(current.deliveryFeeCents) }}</p>
+  <p class="subtotal">Total {{ format(current.totalCents) }}</p>
+  <p>Pagamento: {{ current.paymentLabel }}</p>
+  @if (current.paymentInstructions) {
+  <p>{{ current.paymentInstructions }}</p>
+  }
+  <h2>Acompanhamento</h2>
+  <ol class="timeline">
+    @for (entry of current.history; track entry.createdAt + entry.toStatus) {
+    <li>
+      <span>{{ status(entry.toStatus) }}</span>
+      <time [attr.datetime]="entry.createdAt">{{ when(entry.createdAt) }}</time>
+    </li>
+    }
+  </ol>
+  }
+</main>

@@ -67,6 +67,10 @@ describe('tenant and store context', () => {
       if (dataSource.isInitialized && createdIds.length > 0) {
         const marks = createdIds.map(() => '?').join(', ');
         await dataSource.query(
+          `DELETE FROM payment_methods WHERE tenant_id IN (${marks})`,
+          createdIds,
+        );
+        await dataSource.query(
           `DELETE FROM stores WHERE tenant_id IN (${marks})`,
           createdIds,
         );

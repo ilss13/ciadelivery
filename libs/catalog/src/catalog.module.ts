@@ -48,6 +48,7 @@ import { DemoCatalogSeed } from './seed-demo-catalog';
     PublicProductsController,
     PublicCartController,
   ],
+  exports: [ValidatePublicCart],
   providers: [
     PermissionsGuard,
     DemoCatalogSeed,

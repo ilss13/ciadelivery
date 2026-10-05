@@ -76,11 +76,13 @@ export class ValidatePublicCart {
       active: product.active,
       available: product.available,
       name: product.name,
+      sku: product.sku,
       priceCents: product.priceCents,
       groups: groups
         .filter((group) => group.productId === product.id)
         .map((group) => ({
           id: group.id,
+          name: group.name,
           minSelect: group.minSelect,
           maxSelect: group.maxSelect,
           options: options

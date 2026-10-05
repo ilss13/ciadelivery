@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
 import { formatBrl } from '../../shared/money';
 import { cartSubtotal, lineSubtotal } from './cart';
 import { CartClient } from './cart.client';
@@ -26,6 +27,7 @@ export class CartPanel implements OnInit {
 
   private readonly cart = inject(CartStore);
   private readonly client = inject(CartClient);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly lines = this.cart.lines;
@@ -89,6 +91,7 @@ export class CartPanel implements OnInit {
     if (!this.canConfirm()) {
       return;
     }
+    void this.router.navigateByUrl('/checkout');
   }
 
   setQuantity(lineId: string, quantity: number): void {

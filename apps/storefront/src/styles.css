@@ -239,6 +239,91 @@ button:disabled {
   opacity: 0.55;
 }
 
+.checkout,
+.tracking {
+  padding: 1rem;
+  max-width: 40rem;
+  margin: 0 auto;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.checkout section,
+.tracking {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.checkout label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.checkout input,
+.checkout button,
+.tracking button {
+  font: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.checkout input {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--brand-accent) 25%, transparent);
+  border-radius: 0.5rem;
+  background: var(--brand-secondary);
+  color: inherit;
+}
+
+.choice {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.choice input {
+  width: auto;
+  margin-top: 0.2rem;
+}
+
+.actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.checkout button,
+.tracking button {
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0.7rem 1rem;
+  background: var(--brand-primary);
+  color: var(--brand-secondary);
+}
+
+.checkout button.secondary {
+  background: transparent;
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
+}
+
+.timeline {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline li {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.status-label {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
 @media (min-width: 48rem) {
   .store {
     max-width: 64rem;
