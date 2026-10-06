@@ -6,6 +6,7 @@ import { CatalogModule } from '@ciadelivery/catalog';
 import { CustomersModule } from '@ciadelivery/customers';
 import { LeadsModule } from '@ciadelivery/leads';
 import { NotificationsModule } from '@ciadelivery/notifications';
+import { OnboardingModule } from '@ciadelivery/onboarding';
 import { OrdersModule } from '@ciadelivery/orders';
 import { ReportsModule } from '@ciadelivery/reports';
 import { PlatformModule, StorageModule } from '@ciadelivery/shared';
@@ -27,6 +28,7 @@ import { PlatformTenantsModule } from './platform-tenants.module';
     OrdersModule,
     ReportsModule,
     NotificationsModule,
+    OnboardingModule,
     LeadsModule,
     WhatsAppModule,
   ],

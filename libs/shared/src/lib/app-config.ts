@@ -107,7 +107,7 @@ function parsePoolSize(value: string | undefined): number {
   return poolSize;
 }
 
-function parseCorsOrigins(value: string): string[] {
+function parseCorsOrigins(value: string, nodeEnv: NodeEnv): string[] {
   const origins = value
     .split(',')
     .map((origin) => origin.trim())
@@ -116,6 +116,14 @@ function parseCorsOrigins(value: string): string[] {
   if (origins.length === 0) {
     throw new Error(
       'Invalid CORS_ORIGINS: expected a comma-separated list of origins',
+    );
+  }
+  if (
+    (nodeEnv === 'staging' || nodeEnv === 'production') &&
+    origins.includes('*')
+  ) {
+    throw new Error(
+      'Invalid CORS_ORIGINS: wildcard is not allowed in staging or production',
     );
   }
 
@@ -207,7 +215,8 @@ export function loadAppConfig(env: Env = process.env): AppConfig {
     throw new Error('SEED_PLATFORM_ADMIN must not be enabled in production');
   }
 
-  const platformAdminEmail = env['PLATFORM_ADMIN_EMAIL']?.trim().toLowerCase() ?? '';
+  const platformAdminEmail =
+    env['PLATFORM_ADMIN_EMAIL']?.trim().toLowerCase() ?? '';
   const platformAdminPassword = env['PLATFORM_ADMIN_PASSWORD'] ?? '';
   if (seedPlatformAdmin && platformAdminEmail.length === 0) {
     throw new Error(
@@ -250,7 +259,7 @@ export function loadAppConfig(env: Env = process.env): AppConfig {
     platformAdminEmail,
     platformAdminPassword,
     logPasswordReset: parseFlag(env['LOG_PASSWORD_RESET']),
-    corsOrigins: parseCorsOrigins(env['CORS_ORIGINS']?.trim() ?? ''),
+    corsOrigins: parseCorsOrigins(env['CORS_ORIGINS']?.trim() ?? '', nodeEnv),
     storeTimezone: parseStoreTimezone(env['STORE_TIMEZONE']),
     seedDemo,
     demoOwnerPassword,
@@ -391,13 +400,24 @@ function whatsappConfig(
       'Invalid META_GRAPH_VERSION: expected a version like v21.0',
     );
   }
+  const metaAppSecret = env['META_APP_SECRET']?.trim() ?? '';
+  const metaWebhookVerifyToken =
+    env['META_WEBHOOK_VERIFY_TOKEN']?.trim() ?? '';
+  if (
+    whatsappDriver === 'meta' &&
+    (metaAppSecret.length === 0 || metaWebhookVerifyToken.length === 0)
+  ) {
+    throw new Error(
+      'Missing required environment variables: META_APP_SECRET, META_WEBHOOK_VERIFY_TOKEN',
+    );
+  }
 
   return {
     credentialsEncryptionKey: rawKey,
     whatsappDriver,
     metaGraphVersion,
-    metaAppSecret: env['META_APP_SECRET'] ?? '',
-    metaWebhookVerifyToken: env['META_WEBHOOK_VERIFY_TOKEN']?.trim() ?? '',
+    metaAppSecret,
+    metaWebhookVerifyToken,
     whatsappAllowSessionMessages:
       nodeEnv === 'production'
         ? false

@@ -17,8 +17,8 @@ export interface CatalogRepository {
     page: PageQuery,
   ): Promise<Page<CategoryRecord>>;
   findCategory(scope: CatalogScope, id: string): Promise<CategoryRecord | null>;
-  nextCategorySort(scope: CatalogScope): Promise<number>;
-  insertCategory(category: CategoryRecord): Promise<void>;
+  nextCategorySort(scope: CatalogScope, tx?: TransactionContext): Promise<number>;
+  insertCategory(category: CategoryRecord, tx?: TransactionContext): Promise<void>;
   updateCategory(category: CategoryRecord): Promise<void>;
   categoryHasProducts(
     scope: CatalogScope,
@@ -43,8 +43,12 @@ export interface CatalogRepository {
   ): Promise<Page<ProductRecord>>;
   findProduct(scope: CatalogScope, id: string): Promise<ProductRecord | null>;
   findPublicProduct(scope: CatalogScope, id: string): Promise<ProductRecord | null>;
-  nextProductSort(scope: CatalogScope, categoryId: string): Promise<number>;
-  insertProduct(product: ProductRecord): Promise<void>;
+  nextProductSort(
+    scope: CatalogScope,
+    categoryId: string,
+    tx?: TransactionContext,
+  ): Promise<number>;
+  insertProduct(product: ProductRecord, tx?: TransactionContext): Promise<void>;
   updateProduct(product: ProductRecord, tx?: TransactionContext): Promise<void>;
   deleteProduct(
     scope: CatalogScope,
@@ -58,8 +62,12 @@ export interface CatalogRepository {
     productIds: readonly string[],
   ): Promise<OptionGroupRecord[]>;
   findGroup(scope: CatalogScope, id: string): Promise<OptionGroupRecord | null>;
-  nextGroupSort(scope: CatalogScope, productId: string): Promise<number>;
-  insertGroup(group: OptionGroupRecord): Promise<void>;
+  nextGroupSort(
+    scope: CatalogScope,
+    productId: string,
+    tx?: TransactionContext,
+  ): Promise<number>;
+  insertGroup(group: OptionGroupRecord, tx?: TransactionContext): Promise<void>;
   updateGroup(group: OptionGroupRecord): Promise<void>;
   deleteGroup(
     scope: CatalogScope,
@@ -73,8 +81,12 @@ export interface CatalogRepository {
     groupIds: readonly string[],
   ): Promise<OptionRecord[]>;
   findOption(scope: CatalogScope, id: string): Promise<OptionRecord | null>;
-  nextOptionSort(scope: CatalogScope, groupId: string): Promise<number>;
-  insertOption(option: OptionRecord): Promise<void>;
+  nextOptionSort(
+    scope: CatalogScope,
+    groupId: string,
+    tx?: TransactionContext,
+  ): Promise<number>;
+  insertOption(option: OptionRecord, tx?: TransactionContext): Promise<void>;
   updateOption(option: OptionRecord): Promise<void>;
   deleteOption(scope: CatalogScope, id: string): Promise<boolean>;
 }

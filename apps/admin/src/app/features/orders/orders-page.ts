@@ -23,6 +23,7 @@ import {
   ageLabel,
   applyOrderEvent,
   firstName,
+  isTestOrder,
   mergeBoard,
   placeCard,
 } from './order-board';
@@ -70,6 +71,7 @@ export class OrdersPage implements OnInit {
   readonly actionErrorId = signal<string | null>(null);
   readonly couriers = signal<CourierOption[]>([]);
   readonly courierChoice = signal<Record<string, string>>({});
+  readonly creatingTest = signal(false);
 
   constructor() {
     this.reload$
@@ -207,6 +209,37 @@ export class OrdersPage implements OnInit {
 
   isHighlighted(id: string): boolean {
     return this.highlighted().has(id);
+  }
+
+  isTest(order: OrderCard): boolean {
+    return isTestOrder(order);
+  }
+
+  canPlaceTest(): boolean {
+    return this.allows('orders.accept');
+  }
+
+  placeTestOrder(): void {
+    if (this.creatingTest()) {
+      return;
+    }
+    this.creatingTest.set(true);
+    this.actionError.set('');
+    this.actionErrorId.set(null);
+    this.feed
+      .placeTestOrder()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (card) => {
+          this.orders.set(placeCard(this.orders(), card, new Date()));
+          this.announcement.set(`Pedido de teste ${card.orderNumber} criado.`);
+          this.creatingTest.set(false);
+        },
+        error: (error: unknown) => {
+          this.creatingTest.set(false);
+          this.error.set(testOrderMessage(readErrorCode(error)));
+        },
+      });
   }
 
   canAccept(order: OrderCard): boolean {
@@ -478,4 +511,17 @@ function actionMessage(code: string): string {
     return 'Este pedido já tem um entregador.';
   }
   return 'Não foi possível atualizar o pedido.';
+}
+
+function testOrderMessage(code: string): string {
+  if (code === 'NO_ACTIVE_PRODUCT') {
+    return 'Cadastre um produto ativo com as opções obrigatórias disponíveis.';
+  }
+  if (code === 'PAYMENT_METHOD_DISABLED') {
+    return 'Ative o pagamento em dinheiro para criar o pedido de teste.';
+  }
+  if (code === 'FORBIDDEN') {
+    return 'Você não tem permissão para criar o pedido de teste.';
+  }
+  return 'Não foi possível criar o pedido de teste.';
 }

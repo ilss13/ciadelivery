@@ -186,6 +186,18 @@ button.danger {
   font-size: 0.875rem;
 }
 
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid #a66a00;
+  border-radius: 999px;
+  background: #fff4d6;
+  color: #734b00;
+  font-size: 0.75rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
 .metrics {
   display: grid;
   grid-template-columns: 1fr;
@@ -411,6 +423,40 @@ div.audit {
 .conversation-list .item {
   width: 100%;
   text-align: left;
+}
+
+.banner {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e6c98a;
+  border-radius: 0.75rem;
+  background: #fff6e8;
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.step {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #e4ddd2;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 @media (max-width: 47.99rem) {

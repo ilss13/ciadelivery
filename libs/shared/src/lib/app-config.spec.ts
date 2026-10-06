@@ -73,7 +73,8 @@ describe('loadAppConfig', () => {
   it('keeps metrics open when METRICS_TOKEN is absent and stores it when set', () => {
     expect(loadAppConfig(validEnv).metricsToken).toBeNull();
     expect(
-      loadAppConfig({ ...validEnv, METRICS_TOKEN: ' scrape-token ' }).metricsToken,
+      loadAppConfig({ ...validEnv, METRICS_TOKEN: ' scrape-token ' })
+        .metricsToken,
     ).toBe('scrape-token');
   });
 
@@ -82,9 +83,9 @@ describe('loadAppConfig', () => {
   });
 
   it('requires the S3 settings only when that driver is selected', () => {
-    expect(() =>
-      loadAppConfig({ ...validEnv, STORAGE_DRIVER: 's3' }),
-    ).toThrow('S3_ENDPOINT');
+    expect(() => loadAppConfig({ ...validEnv, STORAGE_DRIVER: 's3' })).toThrow(
+      'S3_ENDPOINT',
+    );
     expect(
       loadAppConfig({
         ...validEnv,
@@ -127,6 +128,19 @@ describe('loadAppConfig', () => {
     const env = { ...validEnv, CORS_ORIGINS: '' };
     expect(() => loadAppConfig(env)).toThrow('CORS_ORIGINS');
   });
+
+  it.each(['staging', 'production'])(
+    'refuses a wildcard CORS origin in %s',
+    (nodeEnv) => {
+      expect(() =>
+        loadAppConfig({
+          ...validEnv,
+          NODE_ENV: nodeEnv,
+          CORS_ORIGINS: '*',
+        }),
+      ).toThrow('wildcard is not allowed');
+    },
+  );
 
   it('refuses an unknown environment name', () => {
     expect(() => loadAppConfig({ ...validEnv, NODE_ENV: 'test' })).toThrow(
@@ -226,8 +240,16 @@ describe('loadAppConfig', () => {
 
   it('accepts the Meta driver and refuses an unknown one', () => {
     expect(
-      loadAppConfig({ ...validEnv, WHATSAPP_DRIVER: 'meta' }).whatsappDriver,
+      loadAppConfig({
+        ...validEnv,
+        WHATSAPP_DRIVER: 'meta',
+        META_APP_SECRET: 'meta-secret',
+        META_WEBHOOK_VERIFY_TOKEN: 'verify-token',
+      }).whatsappDriver,
     ).toBe('meta');
+    expect(() =>
+      loadAppConfig({ ...validEnv, WHATSAPP_DRIVER: 'meta' }),
+    ).toThrow('META_APP_SECRET');
     expect(() =>
       loadAppConfig({ ...validEnv, WHATSAPP_DRIVER: 'web' }),
     ).toThrow('Invalid WHATSAPP_DRIVER');

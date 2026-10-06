@@ -16,6 +16,7 @@ import { PermissionsGuard, RequestActor, RequirePermissions } from '@ciadelivery
 import { AdminOrders } from '../application/admin-orders';
 import { AdvanceDelivery } from '../application/advance-delivery';
 import { AssignCourier } from '../application/assign-courier';
+import { PlaceTestOrder } from '../application/place-test-order';
 import { TransitionAdminOrder } from '../application/transition-admin-order';
 import { AssignCourierDto } from './courier.dto';
 import { actorFrom } from './http';
@@ -38,10 +39,21 @@ import {
 export class AdminOrdersController {
   constructor(
     private readonly orders: AdminOrders,
+    private readonly placeTestOrder: PlaceTestOrder,
     private readonly transitions: TransitionAdminOrder,
     private readonly assignments: AssignCourier,
     private readonly delivery: AdvanceDelivery,
   ) {}
+
+  @Post('test')
+  @HttpCode(200)
+  @RequirePermissions('orders.accept')
+  @ApiOkResponse({ type: AdminOrderResponse })
+  test(
+    @Req() request: { actor?: RequestActor },
+  ): Promise<AdminOrderResponse> {
+    return this.placeTestOrder.execute(actorFrom(request));
+  }
 
   @Get()
   @ApiOkResponse({ type: AdminOrderPageResponse })

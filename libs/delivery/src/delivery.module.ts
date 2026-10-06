@@ -1,4 +1,5 @@
 import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
+import { CHECKLIST, Checklist, OnboardingModule } from '@ciadelivery/onboarding';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '@ciadelivery/auth';
@@ -38,6 +39,7 @@ import { DemoCourierSeed } from './seed-demo-courier';
 @Module({
   imports: [
     TenancyCoreModule,
+    OnboardingModule,
     AuditModule,
     StoresModule,
     UsersModule,
@@ -67,8 +69,24 @@ import { DemoCourierSeed } from './seed-demo-courier';
         geocoding: GeocodingProvider,
         unitOfWork: UnitOfWork,
         audit: AuditLogs,
-      ) => new AdminDelivery(policies, stores, geocoding, unitOfWork, audit),
-      inject: [DELIVERY_POLICIES, CURRENT_STORE, GEOCODING, UNIT_OF_WORK, AUDIT_LOGS],
+        checklist: Checklist,
+      ) =>
+        new AdminDelivery(
+          policies,
+          stores,
+          geocoding,
+          unitOfWork,
+          audit,
+          checklist,
+        ),
+      inject: [
+        DELIVERY_POLICIES,
+        CURRENT_STORE,
+        GEOCODING,
+        UNIT_OF_WORK,
+        AUDIT_LOGS,
+        CHECKLIST,
+      ],
     },
     {
       provide: QuotePublicDelivery,
@@ -91,8 +109,17 @@ import { DemoCourierSeed } from './seed-demo-courier';
         hasher: PasswordHasher,
         stores: CurrentStore,
         unitOfWork: UnitOfWork,
-      ) => new AdminCouriers(couriers, users, hasher, stores, unitOfWork),
-      inject: [COURIERS, USERS, PASSWORD_HASHER, CURRENT_STORE, UNIT_OF_WORK],
+        checklist: Checklist,
+      ) =>
+        new AdminCouriers(couriers, users, hasher, stores, unitOfWork, checklist),
+      inject: [
+        COURIERS,
+        USERS,
+        PASSWORD_HASHER,
+        CURRENT_STORE,
+        UNIT_OF_WORK,
+        CHECKLIST,
+      ],
     },
   ],
   exports: [DELIVERY_POLICIES, COURIERS, ASSIGNMENTS],

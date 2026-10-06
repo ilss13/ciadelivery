@@ -10,6 +10,41 @@
 }
 
 <section>
+  <h2>Importar cardápio</h2>
+  <p class="muted">
+    Use o modelo CSV para cadastrar categorias, produtos e opções de uma vez.
+  </p>
+  <div class="actions">
+    <button type="button" class="secondary" (click)="downloadTemplate()">
+      Baixar modelo CSV
+    </button>
+  </div>
+  <form class="stack" (ngSubmit)="importCsv()">
+    <label>
+      Arquivo CSV
+      <input
+        type="file"
+        accept=".csv,text/csv"
+        (change)="selectImportFile($event)"
+      />
+    </label>
+    <button type="submit" [disabled]="importing() || importFile() === null">
+      {{ importing() ? 'Importando…' : 'Importar arquivo' }}
+    </button>
+  </form>
+  @if (importErrors().length > 0) {
+  <div class="error" role="alert">
+    <p>Corrija as linhas abaixo e envie o arquivo novamente:</p>
+    <ul>
+      @for (item of importErrors(); track item.line + '-' + item.code) {
+      <li>Linha {{ item.line }}: {{ importErrorMessage(item.code) }}</li>
+      }
+    </ul>
+  </div>
+  }
+</section>
+
+<section>
   <h2>Categorias</h2>
   @if (categories().length === 0) {
   <p>Nenhuma categoria cadastrada.</p>

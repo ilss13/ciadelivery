@@ -1,4 +1,5 @@
 import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
+import { CHECKLIST, Checklist, OnboardingModule } from '@ciadelivery/onboarding';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_CONFIG, AppConfig } from '@ciadelivery/shared';
@@ -71,6 +72,7 @@ import { WhatsAppWebhookController } from './presentation/webhook-whatsapp.contr
   imports: [
     TenancyCoreModule,
     AuditModule,
+    OnboardingModule,
     StoresModule,
     UsersModule,
     TypeOrmModule.forFeature([
@@ -119,6 +121,7 @@ import { WhatsAppWebhookController } from './presentation/webhook-whatsapp.contr
         config: AppConfig,
         unitOfWork: UnitOfWork,
         audit: AuditLogs,
+        checklist: Checklist,
       ) =>
         new AdminWhatsApp(
           connections,
@@ -129,6 +132,7 @@ import { WhatsAppWebhookController } from './presentation/webhook-whatsapp.contr
           config.credentialsEncryptionKey,
           unitOfWork,
           audit,
+          checklist,
         ),
       inject: [
         WHATSAPP_CONNECTIONS,
@@ -139,6 +143,7 @@ import { WhatsAppWebhookController } from './presentation/webhook-whatsapp.contr
         APP_CONFIG,
         UNIT_OF_WORK,
         AUDIT_LOGS,
+        CHECKLIST,
       ],
     },
     {

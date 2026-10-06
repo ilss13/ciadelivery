@@ -16,6 +16,7 @@ interface OrderRow {
   customerName: string;
   customerPhone: string;
   totalCents: number | string;
+  source: 'STOREFRONT' | 'WHATSAPP' | 'TEST';
   storeName: string;
   trackingTokenHash: string | null;
 }
@@ -42,6 +43,7 @@ export class TypeOrmOrderNotices implements OrderNotices {
               o.customer_name AS customerName,
               o.customer_phone AS customerPhone,
               o.total_cents AS totalCents,
+              o.source AS source,
               s.name AS storeName,
               o.tracking_token_hash AS trackingTokenHash
          FROM orders o
@@ -64,6 +66,7 @@ export class TypeOrmOrderNotices implements OrderNotices {
       customerName: row.customerName,
       customerPhone: row.customerPhone,
       totalCents: Number(row.totalCents),
+      source: row.source,
       storeName: row.storeName,
       hasTrackingToken:
         row.trackingTokenHash !== null && row.trackingTokenHash.length > 0,

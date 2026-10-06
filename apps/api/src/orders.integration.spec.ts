@@ -947,6 +947,86 @@ describe('public orders', () => {
     geocoding.clear();
   });
 
+  it('creates one daily test order without adding report revenue', async () => {
+    const owner = await createOwner('pedido-teste', 'Pedido Teste');
+    await createProduct(owner.token);
+
+    const first = await request(app.getHttpServer())
+      .post('/api/v1/admin/orders/test')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({})
+      .expect(200);
+    const repeated = await request(app.getHttpServer())
+      .post('/api/v1/admin/orders/test')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({})
+      .expect(200);
+    expect(repeated.body.id).toBe(first.body.id);
+    expect(first.body).toEqual(
+      expect.objectContaining({
+        status: 'NEW',
+        fulfillment: 'PICKUP',
+        source: 'TEST',
+        notes: 'TEST_ORDER',
+      }),
+    );
+
+    const dataSource = app.get(DataSource);
+    const stored: Array<{
+      source: string;
+      notes: string | null;
+      customerPhone: string;
+      optionsSnapshot: unknown;
+    }> = await dataSource.query(
+      `SELECT o.source,
+              o.notes,
+              o.customer_phone AS customerPhone,
+              oi.options_snapshot AS optionsSnapshot
+         FROM orders o
+         INNER JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.id = ?`,
+      [first.body.id],
+    );
+    expect(stored[0]).toEqual(
+      expect.objectContaining({
+        source: 'TEST',
+        notes: 'TEST_ORDER',
+        customerPhone: '5500000000000',
+      }),
+    );
+    const options =
+      typeof stored[0]?.optionsSnapshot === 'string'
+        ? JSON.parse(stored[0].optionsSnapshot)
+        : stored[0]?.optionsSnapshot;
+    expect(options).toEqual([
+      expect.objectContaining({ name: 'Grande', priceCents: 1000 }),
+    ]);
+
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+    const overview = await request(app.getHttpServer())
+      .get('/api/v1/admin/reports/overview')
+      .query({ from: today, to: today })
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    expect(overview.body.orderCount).toBe(0);
+    expect(overview.body.revenueCents).toBe(0);
+
+    const onboarding = await request(app.getHttpServer())
+      .get('/api/v1/admin/onboarding')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    expect(onboarding.body.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'place_test_order', status: 'DONE' }),
+      ]),
+    );
+  });
+
   async function outboxRows(
     dataSource: DataSource,
     orderId: string,

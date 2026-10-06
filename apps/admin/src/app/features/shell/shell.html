@@ -21,8 +21,17 @@
   } @if (canReadAudit()) {
   <a routerLink="/auditoria">Auditoria</a>
   }
+  <a routerLink="/implantacao">Implantação</a>
   <button type="button" (click)="logout()">Sair</button>
 </header>
 <main class="stack">
+  @if (notice.checklist(); as board) {
+  @if (!board.published) {
+  <p class="banner">
+    A loja ainda não está no ar. Próxima etapa: {{ nextStep() }}.
+    <a routerLink="/implantacao">Abrir implantação</a>
+  </p>
+  }
+  }
   <router-outlet></router-outlet>
 </main>

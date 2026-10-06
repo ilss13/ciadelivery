@@ -44,6 +44,10 @@ class FakeOrdersBoardStore implements OrdersBoardStore {
   assign() {
     return throwError(() => new Error('unused'));
   }
+
+  placeTestOrder() {
+    return of(card({ source: 'TEST', notes: 'TEST_ORDER' }));
+  }
 }
 
 describe('OrdersPage', () => {
@@ -119,6 +123,13 @@ describe('OrdersPage', () => {
     expect(text).toContain('Iniciar preparo');
   });
 
+  it('shows the Teste badge for a test order', async () => {
+    feed.loadResult = [card({ source: 'TEST', notes: 'TEST_ORDER' })];
+    const fixture = await create(feed);
+
+    expect(column(fixture.nativeElement, 'new').textContent).toContain('Teste');
+  });
+
   it('lets an operator assign a ready delivery and finish one on the route', async () => {
     feed.couriers = [{ id: 'courier-1', name: 'Lia' }];
     feed.loadResult = [
@@ -189,6 +200,8 @@ function card(overrides: Partial<OrderCard> = {}): OrderCard {
     status: 'NEW',
     fulfillment: 'DELIVERY',
     customerName: 'Ana Silva',
+    source: 'STOREFRONT',
+    notes: null,
     ...overrides,
   };
 }

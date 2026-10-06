@@ -25,6 +25,7 @@ import {
 import { TeamPage } from './features/team/team-page';
 import { ShellPage } from './features/shell/shell';
 import { AuditPage } from './features/audit/audit-page';
+import { OnboardingPage } from './features/onboarding/onboarding-page';
 import { ReportsPage } from './features/reports/reports-page';
 import { ConversationsPage } from './features/whatsapp/conversations-page';
 
@@ -90,6 +91,7 @@ export const appRoutes: Route[] = [
         component: TeamPage,
         canActivate: [usersGuard],
       },
+      { path: 'implantacao', component: OnboardingPage },
       { path: 'inicio', component: HomePage },
       {
         path: '',

@@ -92,5 +92,12 @@ export async function requireStore(stores: CurrentStore): Promise<StoreRecord> {
   if (store === null || store.tenantId !== tenant.id) {
     throw new DomainException('STORE_NOT_FOUND', 'The store was not found', 404);
   }
+  if (!store.published) {
+    throw new DomainException(
+      'STORE_UNPUBLISHED',
+      'The store is not published',
+      403,
+    );
+  }
   return store;
 }

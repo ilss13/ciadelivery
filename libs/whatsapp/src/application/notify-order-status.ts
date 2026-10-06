@@ -76,6 +76,9 @@ export class NotifyOrderStatus {
     if (order === null || order.tenantId !== event.tenantId) {
       return;
     }
+    if (order.source === 'TEST') {
+      return;
+    }
 
     const connection = await this.connections.findConnectedForTenant(event.tenantId);
     if (

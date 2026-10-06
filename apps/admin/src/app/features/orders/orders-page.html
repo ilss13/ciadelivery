@@ -12,6 +12,16 @@
     <button type="button" (click)="focusFirstNew()" [disabled]="!hasNew()">
       Focar no primeiro novo
     </button>
+    @if (canPlaceTest()) {
+    <button
+      type="button"
+      class="secondary"
+      [disabled]="creatingTest()"
+      (click)="placeTestOrder()"
+    >
+      {{ creatingTest() ? 'Criando teste…' : 'Criar pedido de teste' }}
+    </button>
+    }
   </div>
   @if (soundEnabled() && soundBlocked()) {
   <p class="muted" role="status">Clique na página para liberar o alerta sonoro.</p>
@@ -43,7 +53,12 @@
             [id]="'order-' + order.id"
             tabindex="-1"
           >
-            <strong>Pedido {{ order.orderNumber }}</strong>
+            <strong>
+              Pedido {{ order.orderNumber }}
+              @if (isTest(order)) {
+              <span class="badge">Teste</span>
+              }
+            </strong>
             <span>{{ age(order.createdAt) }}</span>
             <span>{{ format(order.totalCents) }}</span>
             <span>{{ fulfillment(order.fulfillment) }}</span>

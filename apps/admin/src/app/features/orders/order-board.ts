@@ -6,6 +6,12 @@ export interface OrderCard {
   status: string;
   fulfillment: string;
   customerName: string;
+  source: string;
+  notes: string | null;
+}
+
+export function isTestOrder(order: OrderCard): boolean {
+  return order.source === 'TEST' || order.notes === 'TEST_ORDER';
 }
 
 export interface OrderRealtimeEvent {

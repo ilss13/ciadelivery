@@ -587,6 +587,79 @@ describe('catalog categories, products and options', () => {
     expect(denied.body.error.code).toBe('FORBIDDEN');
   });
 
+  it('imports a CSV atomically in the authenticated tenant', async () => {
+    const ownerA = await createOwner('csv-a', 'CSV A');
+    const ownerB = await createOwner('csv-b', 'CSV B');
+    const header =
+      'category,product,description,price,sku,option_group,option_name,option_price,option_min,option_max';
+    const valid = [
+      header,
+      'Pizzas,Calabresa,Clássica,"49,90",CAL,Tamanho,Média,"0,00",1,1',
+      'Pizzas,Calabresa,Clássica,"49,90",CAL,Tamanho,Grande,10.00,1,1',
+    ].join('\n');
+
+    const imported = await request(app.getHttpServer())
+      .post('/api/v1/admin/catalog/import')
+      .set('Authorization', `Bearer ${ownerA.token}`)
+      .attach('file', Buffer.from(valid), {
+        filename: 'cardapio.csv',
+        contentType: 'text/csv',
+      })
+      .expect(200);
+    expect(imported.body).toEqual(
+      expect.objectContaining({ categories: 1, products: 1, options: 2 }),
+    );
+
+    const dataSource = app.get(DataSource);
+    const prices: Array<{ priceCents: number | string }> = await dataSource.query(
+      'SELECT price_cents AS priceCents FROM products WHERE tenant_id = ?',
+      [ownerA.tenantId],
+    );
+    expect(Number(prices[0]?.priceCents)).toBe(4990);
+
+    const foreign = await request(app.getHttpServer())
+      .get('/api/v1/admin/categories?page=1&pageSize=100')
+      .set('Authorization', `Bearer ${ownerB.token}`)
+      .expect(200);
+    expect(foreign.body.data).toEqual([]);
+
+    const before: Array<{ count: number | string }> = await dataSource.query(
+      'SELECT COUNT(*) AS count FROM products WHERE tenant_id = ?',
+      [ownerA.tenantId],
+    );
+    const invalid = [
+      header,
+      'Bebidas,Água,Sem gás,5.00,AGUA,,,,,',
+      'Bebidas,Suco,Natural,,SUCO,,,,,',
+    ].join('\n');
+    const rejected = await request(app.getHttpServer())
+      .post('/api/v1/admin/catalog/import')
+      .set('Authorization', `Bearer ${ownerA.token}`)
+      .attach('file', Buffer.from(invalid), {
+        filename: 'invalido.csv',
+        contentType: 'text/csv',
+      })
+      .expect(422);
+    expect(rejected.body.error.details).toEqual([
+      expect.objectContaining({ line: 3, code: 'INVALID_PRICE' }),
+    ]);
+    const after: Array<{ count: number | string }> = await dataSource.query(
+      'SELECT COUNT(*) AS count FROM products WHERE tenant_id = ?',
+      [ownerA.tenantId],
+    );
+    expect(Number(after[0]?.count)).toBe(Number(before[0]?.count));
+
+    const onboarding = await request(app.getHttpServer())
+      .get('/api/v1/admin/onboarding')
+      .set('Authorization', `Bearer ${ownerA.token}`)
+      .expect(200);
+    expect(onboarding.body.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'import_catalog', status: 'DONE' }),
+      ]),
+    );
+  });
+
   async function createOwner(
     prefix: string,
     name: string,

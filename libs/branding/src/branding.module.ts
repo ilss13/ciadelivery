@@ -1,4 +1,5 @@
 import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
+import { CHECKLIST, Checklist, OnboardingModule } from '@ciadelivery/onboarding';
 import { APP_CONFIG, AppConfig, STORAGE, StorageProvider, WarningLog } from '@ciadelivery/shared';
 import { Logger, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -49,6 +50,7 @@ import { DemoTenantSeed } from './seed-demo-tenants';
 @Module({
   imports: [
     TenancyCoreModule,
+    OnboardingModule,
     AuditModule,
     StoresModule,
     UsersModule,
@@ -74,8 +76,9 @@ import { DemoTenantSeed } from './seed-demo-tenants';
         tenants: TenantRepository,
         stores: Stores,
         unitOfWork: UnitOfWork,
-      ) => new CreateTenant(tenants, stores, unitOfWork),
-      inject: [TENANT_REPOSITORY, STORES, UNIT_OF_WORK],
+        checklist: Checklist,
+      ) => new CreateTenant(tenants, stores, unitOfWork, checklist),
+      inject: [TENANT_REPOSITORY, STORES, UNIT_OF_WORK, CHECKLIST],
     },
     DemoTenantSeed,
     {
@@ -105,8 +108,10 @@ import { DemoTenantSeed } from './seed-demo-tenants';
         storage: StorageProvider,
         unitOfWork: UnitOfWork,
         audit: AuditLogs,
-      ) => new SaveBranding(stores, branding, storage, unitOfWork, audit),
-      inject: [CURRENT_STORE, BRANDING, STORAGE, UNIT_OF_WORK, AUDIT_LOGS],
+        checklist: Checklist,
+      ) =>
+        new SaveBranding(stores, branding, storage, unitOfWork, audit, checklist),
+      inject: [CURRENT_STORE, BRANDING, STORAGE, UNIT_OF_WORK, AUDIT_LOGS, CHECKLIST],
     },
     {
       provide: UploadBrandingImage,
@@ -114,14 +119,16 @@ import { DemoTenantSeed } from './seed-demo-tenants';
         stores: CurrentStore,
         branding: BrandingRepository,
         storage: StorageProvider,
+        checklist: Checklist,
       ) =>
         new UploadBrandingImage(
           stores,
           branding,
           storage,
           brandingStorageWarnings(),
+          checklist,
         ),
-      inject: [CURRENT_STORE, BRANDING, STORAGE],
+      inject: [CURRENT_STORE, BRANDING, STORAGE, CHECKLIST],
     },
     {
       provide: GetBusinessHours,
@@ -136,8 +143,9 @@ import { DemoTenantSeed } from './seed-demo-tenants';
         hours: BusinessHoursRepository,
         unitOfWork: UnitOfWork,
         audit: AuditLogs,
-      ) => new ReplaceBusinessHours(stores, hours, unitOfWork, audit),
-      inject: [CURRENT_STORE, BUSINESS_HOURS, UNIT_OF_WORK, AUDIT_LOGS],
+        checklist: Checklist,
+      ) => new ReplaceBusinessHours(stores, hours, unitOfWork, audit, checklist),
+      inject: [CURRENT_STORE, BUSINESS_HOURS, UNIT_OF_WORK, AUDIT_LOGS, CHECKLIST],
     },
     {
       provide: UpdateTenant,
@@ -145,8 +153,9 @@ import { DemoTenantSeed } from './seed-demo-tenants';
         tenants: TenantRepository,
         stores: Stores,
         unitOfWork: UnitOfWork,
-      ) => new UpdateTenant(tenants, stores, unitOfWork),
-      inject: [TENANT_REPOSITORY, STORES, UNIT_OF_WORK],
+        checklist: Checklist,
+      ) => new UpdateTenant(tenants, stores, unitOfWork, checklist),
+      inject: [TENANT_REPOSITORY, STORES, UNIT_OF_WORK, CHECKLIST],
     },
     {
       provide: SetCustomDomain,

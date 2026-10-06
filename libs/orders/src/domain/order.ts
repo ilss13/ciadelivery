@@ -2,6 +2,7 @@ import { Fulfillment } from './delivery-quote';
 import { OrderStatus } from './order-status';
 
 export type OrderActorType = 'CUSTOMER' | 'USER' | 'SYSTEM';
+export type OrderSource = 'STOREFRONT' | 'WHATSAPP' | 'TEST';
 
 export interface OrderAddressDraft {
   line: string;
@@ -33,6 +34,8 @@ export interface AdminOrderSummary {
   status: OrderStatus;
   fulfillment: Fulfillment;
   customerName: string;
+  source: OrderSource;
+  notes: string | null;
 }
 
 export interface AdminOrderDetail {
@@ -40,6 +43,7 @@ export interface AdminOrderDetail {
   orderNumber: number;
   status: OrderStatus;
   fulfillment: Fulfillment;
+  source: OrderSource;
   paymentMethodCode: string;
   paymentLabel: string;
   paymentInstructions: string | null;

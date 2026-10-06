@@ -2,7 +2,7 @@ import { DomainException, JsonLogger } from '@ciadelivery/shared';
 import { Stores } from '../domain/stores.port';
 import { Tenant, TenantStatus } from '../domain/tenant';
 import { TenantRepository } from '../domain/tenant-repository';
-import { UnitOfWork } from '../domain/transaction-context';
+import { TransactionContext, UnitOfWork } from '../domain/transaction-context';
 import { TenantWithStore, assertCustomDomain } from './create-tenant';
 
 export interface UpdateTenantCommand {
@@ -14,6 +14,13 @@ export interface UpdateTenantCommand {
   platformDomain: string;
 }
 
+type DomainChecklist = {
+  markDone(
+    input: { tenantId: string; code: string; actorId: string | null },
+    tx?: TransactionContext,
+  ): Promise<void>;
+};
+
 export class UpdateTenant {
   private readonly logger = new JsonLogger();
 
@@ -21,6 +28,7 @@ export class UpdateTenant {
     private readonly tenants: TenantRepository,
     private readonly stores: Stores,
     private readonly unitOfWork: UnitOfWork,
+    private readonly checklist: DomainChecklist | null = null,
   ) {}
 
   async execute(command: UpdateTenantCommand): Promise<TenantWithStore> {
@@ -54,6 +62,12 @@ export class UpdateTenant {
       }
 
       await this.tenants.update(next, tx);
+      if (command.customDomain !== undefined && this.checklist !== null) {
+        await this.checklist.markDone(
+          { tenantId: next.id, code: 'configure_domain', actorId: null },
+          tx,
+        );
+      }
       return next;
     });
 

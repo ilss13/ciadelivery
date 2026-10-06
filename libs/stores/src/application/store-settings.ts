@@ -3,7 +3,7 @@ import {
   DomainException,
   GeocodingProvider,
 } from '@ciadelivery/shared';
-import { currentTenant } from '@ciadelivery/tenancy/domain';
+import { currentTenant, TransactionContext } from '@ciadelivery/tenancy/domain';
 import { RequestActor } from '@ciadelivery/users';
 import {
   CurrentStore,
@@ -41,10 +41,24 @@ export class GetStoreSettings {
   }
 }
 
+type StepMarker = {
+  markDone(
+    input: { tenantId: string; code: string; actorId: string | null },
+    tx?: TransactionContext,
+  ): Promise<void>;
+};
+
+const idleSteps: StepMarker = {
+  async markDone(): Promise<void> {
+    return undefined;
+  },
+};
+
 export class UpdateStoreSettings {
   constructor(
     private readonly stores: CurrentStore,
     private readonly geocoding: GeocodingProvider,
+    private readonly steps: StepMarker = idleSteps,
   ) {}
 
   async execute(
@@ -75,6 +89,11 @@ export class UpdateStoreSettings {
       );
     }
 
+    await this.steps.markDone({
+      tenantId: updated.tenantId,
+      code: 'configure_address',
+      actorId: actor.userId,
+    });
     return toStoreSettings(updated);
   }
 

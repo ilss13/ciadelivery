@@ -51,12 +51,18 @@ export class TypeOrmCatalog implements CatalogRepository {
     return row === null ? null : toCategory(row);
   }
 
-  async nextCategorySort(scope: CatalogScope): Promise<number> {
-    return this.nextSort(CategoryEntity, scope);
+  async nextCategorySort(
+    scope: CatalogScope,
+    tx?: TransactionContext,
+  ): Promise<number> {
+    return this.nextSort(CategoryEntity, scope, undefined, tx);
   }
 
-  async insertCategory(category: CategoryRecord): Promise<void> {
-    const manager = await this.manager();
+  async insertCategory(
+    category: CategoryRecord,
+    tx?: TransactionContext,
+  ): Promise<void> {
+    const manager = tx === undefined ? await this.manager() : this.manager(tx);
     await manager.insert(CategoryEntity, category);
   }
 
@@ -199,12 +205,19 @@ export class TypeOrmCatalog implements CatalogRepository {
     return product;
   }
 
-  async nextProductSort(scope: CatalogScope, categoryId: string): Promise<number> {
-    return this.nextSort(ProductEntity, scope, { categoryId });
+  async nextProductSort(
+    scope: CatalogScope,
+    categoryId: string,
+    tx?: TransactionContext,
+  ): Promise<number> {
+    return this.nextSort(ProductEntity, scope, { categoryId }, tx);
   }
 
-  async insertProduct(product: ProductRecord): Promise<void> {
-    const manager = await this.manager();
+  async insertProduct(
+    product: ProductRecord,
+    tx?: TransactionContext,
+  ): Promise<void> {
+    const manager = tx === undefined ? await this.manager() : this.manager(tx);
     await manager.insert(ProductEntity, product);
   }
 
@@ -294,12 +307,19 @@ export class TypeOrmCatalog implements CatalogRepository {
     return row === null ? null : toGroup(row);
   }
 
-  async nextGroupSort(scope: CatalogScope, productId: string): Promise<number> {
-    return this.nextSort(OptionGroupEntity, scope, { productId });
+  async nextGroupSort(
+    scope: CatalogScope,
+    productId: string,
+    tx?: TransactionContext,
+  ): Promise<number> {
+    return this.nextSort(OptionGroupEntity, scope, { productId }, tx);
   }
 
-  async insertGroup(group: OptionGroupRecord): Promise<void> {
-    const manager = await this.manager();
+  async insertGroup(
+    group: OptionGroupRecord,
+    tx?: TransactionContext,
+  ): Promise<void> {
+    const manager = tx === undefined ? await this.manager() : this.manager(tx);
     await manager.insert(OptionGroupEntity, group);
   }
 
@@ -374,12 +394,19 @@ export class TypeOrmCatalog implements CatalogRepository {
     return row === null ? null : toOption(row);
   }
 
-  async nextOptionSort(scope: CatalogScope, groupId: string): Promise<number> {
-    return this.nextSort(OptionEntity, scope, { groupId });
+  async nextOptionSort(
+    scope: CatalogScope,
+    groupId: string,
+    tx?: TransactionContext,
+  ): Promise<number> {
+    return this.nextSort(OptionEntity, scope, { groupId }, tx);
   }
 
-  async insertOption(option: OptionRecord): Promise<void> {
-    const manager = await this.manager();
+  async insertOption(
+    option: OptionRecord,
+    tx?: TransactionContext,
+  ): Promise<void> {
+    const manager = tx === undefined ? await this.manager() : this.manager(tx);
     await manager.insert(OptionEntity, option);
   }
 
@@ -433,21 +460,26 @@ export class TypeOrmCatalog implements CatalogRepository {
   private async nextSort(
     entity: typeof CategoryEntity,
     scope: CatalogScope,
+    extra?: undefined,
+    tx?: TransactionContext,
   ): Promise<number>;
   private async nextSort(
     entity: typeof ProductEntity,
     scope: CatalogScope,
     extra: { categoryId: string },
+    tx?: TransactionContext,
   ): Promise<number>;
   private async nextSort(
     entity: typeof OptionGroupEntity,
     scope: CatalogScope,
     extra: { productId: string },
+    tx?: TransactionContext,
   ): Promise<number>;
   private async nextSort(
     entity: typeof OptionEntity,
     scope: CatalogScope,
     extra: { groupId: string },
+    tx?: TransactionContext,
   ): Promise<number>;
   private async nextSort(
     entity:
@@ -457,8 +489,9 @@ export class TypeOrmCatalog implements CatalogRepository {
       | typeof OptionEntity,
     scope: CatalogScope,
     extra?: { categoryId?: string; productId?: string; groupId?: string },
+    tx?: TransactionContext,
   ): Promise<number> {
-    const manager = await this.manager();
+    const manager = tx === undefined ? await this.manager() : this.manager(tx);
     const where: FindOptionsWhere<CategoryEntity> = {
       tenantId: scope.tenantId,
       storeId: scope.storeId,

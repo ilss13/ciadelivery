@@ -1,0 +1,59 @@
+<h1>Implantação</h1>
+<p class="muted">
+  Roteiro para abrir a loja ao público. WhatsApp, entregador e treinamento não
+  impedem a publicação.
+</p>
+
+@if (loading()) {
+<p>Carregando a implantação…</p>
+} @else if (checklist(); as board) {
+@if (!board.published) {
+<p class="banner">
+  A loja ainda não está publicada.
+  @if (blockingLabels()) {
+  Falta {{ blockingLabels() }}.
+  }
+</p>
+}
+@if (error()) {
+<p class="error" role="alert">{{ error() }}</p>
+}
+<ol class="steps">
+  @for (step of board.steps; track step.code) {
+  <li class="step">
+    <div>
+      <strong>{{ label(step.code) }}</strong>
+      <span class="muted">{{ status(step) }}</span>
+      @if (step.note) {
+      <span>{{ step.note }}</span>
+      }
+    </div>
+    <div class="actions">
+      @if (link(step.code); as href) {
+      <a [routerLink]="href">Abrir</a>
+      }
+      @if (showComplete(step)) {
+      <button type="button" [disabled]="saving()" (click)="markDone(step.code)">
+        Marcar como feito
+      </button>
+      }
+      @if (showSkip(step)) {
+      <button type="button" [disabled]="saving()" (click)="skip(step.code)">
+        Pular
+      </button>
+      }
+    </div>
+  </li>
+  }
+</ol>
+@if (canPublish() && !board.published) {
+<button type="button" [disabled]="saving()" (click)="publish()">
+  Publicar loja
+</button>
+}
+@if (canPublish() && board.published) {
+<button type="button" [disabled]="saving()" (click)="unpublish()">
+  Tirar do ar
+</button>
+}
+}

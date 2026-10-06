@@ -531,6 +531,12 @@ export class AdminOrderResponse {
 
   @ApiProperty()
   customerName!: string;
+
+  @ApiProperty({ enum: ['STOREFRONT', 'WHATSAPP', 'TEST'] })
+  source!: string;
+
+  @ApiProperty({ nullable: true, type: String })
+  notes!: string | null;
 }
 
 export class AdminOrderDetailResponse {
@@ -545,6 +551,9 @@ export class AdminOrderDetailResponse {
 
   @ApiProperty({ enum: ['DELIVERY', 'PICKUP'] })
   fulfillment!: string;
+
+  @ApiProperty({ enum: ['STOREFRONT', 'WHATSAPP', 'TEST'] })
+  source!: string;
 
   @ApiProperty()
   paymentMethodCode!: string;

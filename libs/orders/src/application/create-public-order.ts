@@ -24,6 +24,7 @@ import {
 import { DomainEventPublisher } from '../domain/domain-event';
 import { ORDER_CREATED_EVENT } from '../domain/order-command';
 import { OrderRepository } from '../domain/order-repository';
+import { PublicOrderRateLimit } from '../domain/public-order-rate-limit';
 import { orderEvent } from './order-events';
 import {
   assertCart,
@@ -71,6 +72,7 @@ export class CreatePublicOrder {
     private readonly orders: OrderRepository,
     private readonly unitOfWork: UnitOfWork,
     private readonly events: DomainEventPublisher,
+    private readonly rateLimit: PublicOrderRateLimit,
   ) {}
 
   async execute(
@@ -78,6 +80,7 @@ export class CreatePublicOrder {
     meta: CreateOrderMeta,
   ): Promise<CreatedOrder> {
     const store = await requireStore(this.stores);
+    await this.rateLimit.consume(store.tenantId, clip(meta.ip, 64));
     const idempotencyKey = readIdempotencyKey(meta.idempotencyKey);
     const phone = normalizeBrazilPhone(input.customer.phone);
     const name = input.customer.name.trim();
@@ -211,6 +214,7 @@ export class CreatePublicOrder {
           storeId: scope.storeId,
           customerId: customer.id,
           orderNumber,
+          source: 'STOREFRONT',
           fulfillment: input.fulfillment,
           paymentMethodCode: method.code,
           paymentLabel: method.label,

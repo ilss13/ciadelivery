@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryColumn } from 'typeorm';
 import { Fulfillment } from '../domain/delivery-quote';
-import { OrderAddress, OrderOptionSnapshot } from '../domain/order';
+import { OrderAddress, OrderOptionSnapshot, OrderSource } from '../domain/order';
 import { OrderStatus } from '../domain/order-status';
 import { CreatedOrder } from '../domain/order';
 
@@ -28,7 +28,7 @@ export class OrderEntity {
   fulfillment!: Fulfillment;
 
   @Column({ type: 'varchar', length: 16, default: 'STOREFRONT' })
-  source!: 'STOREFRONT' | 'WHATSAPP';
+  source!: OrderSource;
 
   @Column({ name: 'payment_method_code', type: 'varchar', length: 32 })
   paymentMethodCode!: string;

@@ -1,7 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { DomainException, JsonLogger } from '@ciadelivery/shared';
 import { CurrentStore, StoreRecord } from '@ciadelivery/stores';
-import { currentTenant, UnitOfWork } from '@ciadelivery/tenancy/domain';
+import {
+  currentTenant,
+  TransactionContext,
+  UnitOfWork,
+} from '@ciadelivery/tenancy/domain';
 import {
   PasswordHasher,
   RequestActor,
@@ -57,6 +61,19 @@ export interface UpdateCourierCommand {
   notes?: string | null;
 }
 
+type StepMarker = {
+  markDone(
+    input: { tenantId: string; code: string; actorId: string | null },
+    tx?: TransactionContext,
+  ): Promise<void>;
+};
+
+const idleSteps: StepMarker = {
+  async markDone(): Promise<void> {
+    return undefined;
+  },
+};
+
 export class AdminCouriers {
   private readonly logger = new JsonLogger();
 
@@ -66,6 +83,7 @@ export class AdminCouriers {
     private readonly hasher: PasswordHasher,
     private readonly stores: CurrentStore,
     private readonly unitOfWork: UnitOfWork,
+    private readonly steps: StepMarker = idleSteps,
   ) {}
 
   async list(
@@ -105,7 +123,17 @@ export class AdminCouriers {
     if (command.userId !== null) {
       const linked = await this.linkUser(store, command.userId);
       const courier = draft(store, linked.userId, command, now);
-      await this.unitOfWork.run((tx) => this.couriers.insert(courier, tx));
+      await this.unitOfWork.run(async (tx) => {
+        await this.couriers.insert(courier, tx);
+        await this.steps.markDone(
+          {
+            tenantId: store.tenantId,
+            code: 'create_couriers',
+            actorId: actor.userId,
+          },
+          tx,
+        );
+      });
       this.logger.log(`Courier ${courier.id} linked`, 'AdminCouriers');
       return {
         ...(await this.toView(courier, linked.email)),
@@ -145,6 +173,14 @@ export class AdminCouriers {
         tx,
       );
       await this.couriers.insert(courier, tx);
+      await this.steps.markDone(
+        {
+          tenantId: store.tenantId,
+          code: 'create_couriers',
+          actorId: actor.userId,
+        },
+        tx,
+      );
     });
     this.logger.log(`Courier ${courier.id} created`, 'AdminCouriers');
     return {

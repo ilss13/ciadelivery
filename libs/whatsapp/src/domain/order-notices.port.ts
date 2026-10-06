@@ -7,6 +7,7 @@ export interface OrderNotice {
   customerName: string;
   customerPhone: string;
   totalCents: number;
+  source: 'STOREFRONT' | 'WHATSAPP' | 'TEST';
   storeName: string;
   hasTrackingToken: boolean;
 }

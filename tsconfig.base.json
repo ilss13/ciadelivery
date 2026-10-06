@@ -24,6 +24,7 @@
       "@ciadelivery/customers": ["./libs/customers/src/index.ts"],
       "@ciadelivery/delivery": ["./libs/delivery/src/index.ts"],
       "@ciadelivery/notifications": ["./libs/notifications/src/index.ts"],
+      "@ciadelivery/onboarding": ["./libs/onboarding/src/index.ts"],
       "@ciadelivery/notifications/worker": ["./libs/notifications/src/worker.ts"],
       "@ciadelivery/orders": ["./libs/orders/src/index.ts"],
       "@ciadelivery/reports": ["./libs/reports/src/index.ts"],

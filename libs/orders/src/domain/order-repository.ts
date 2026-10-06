@@ -6,6 +6,7 @@ import {
   CreatedOrder,
   OrderAddress,
   OrderOptionSnapshot,
+  OrderSource,
   PublicOrder,
 } from './order';
 import { OrderStatus } from './order-status';
@@ -40,6 +41,7 @@ export interface NewOrder {
   storeId: string;
   customerId: string;
   orderNumber: number;
+  source: OrderSource;
   fulfillment: Fulfillment;
   paymentMethodCode: string;
   paymentLabel: string;
@@ -85,6 +87,13 @@ export interface OrderRepository {
     history: NewOrderHistory,
     tx: TransactionContext,
   ): Promise<void>;
+  findTodayTestOrder(
+    tenantId: string,
+    storeId: string,
+    start: Date,
+    end: Date,
+    tx: TransactionContext,
+  ): Promise<AdminOrderSummary | null>;
   findByTrackingTokenHash(hash: string): Promise<PublicOrder | null>;
   listForStore(
     tenantId: string,

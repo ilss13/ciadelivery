@@ -48,6 +48,13 @@ export class GetPublicStore {
         404,
       );
     }
+    if (!store.published) {
+      throw new DomainException(
+        'STORE_UNPUBLISHED',
+        'The store is not published',
+        403,
+      );
+    }
 
     const branding =
       (await this.branding.findCurrent()) ?? defaultBranding(store.name);

@@ -1,4 +1,5 @@
 import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
+import { CHECKLIST, Checklist, OnboardingModule } from '@ciadelivery/onboarding';
 import { APP_CONFIG, AppConfig } from '@ciadelivery/shared';
 import { StoresModule } from '@ciadelivery/stores';
 import {
@@ -58,6 +59,7 @@ import { PlatformAdminSeed } from './seed-platform-admin';
 @Module({
   imports: [
     UsersModule,
+    OnboardingModule,
     AuditModule,
     TenancyCoreModule,
     StoresModule,
@@ -179,8 +181,9 @@ import { PlatformAdminSeed } from './seed-platform-admin';
         hasher: PasswordHasher,
         unitOfWork: UnitOfWork,
         changes: UserChanges,
-      ) => new CreateTenantUser(users, hasher, unitOfWork, changes),
-      inject: [USERS, PASSWORD_HASHER, UNIT_OF_WORK, USER_CHANGES],
+        checklist: Checklist,
+      ) => new CreateTenantUser(users, hasher, unitOfWork, changes, checklist),
+      inject: [USERS, PASSWORD_HASHER, UNIT_OF_WORK, USER_CHANGES, CHECKLIST],
     },
     {
       provide: UpdateTenantUser,
@@ -189,8 +192,9 @@ import { PlatformAdminSeed } from './seed-platform-admin';
         hasher: PasswordHasher,
         unitOfWork: UnitOfWork,
         changes: UserChanges,
-      ) => new UpdateTenantUser(users, hasher, unitOfWork, changes),
-      inject: [USERS, PASSWORD_HASHER, UNIT_OF_WORK, USER_CHANGES],
+        checklist: Checklist,
+      ) => new UpdateTenantUser(users, hasher, unitOfWork, changes, checklist),
+      inject: [USERS, PASSWORD_HASHER, UNIT_OF_WORK, USER_CHANGES, CHECKLIST],
     },
     {
       provide: GetTenantUser,
@@ -209,8 +213,9 @@ import { PlatformAdminSeed } from './seed-platform-admin';
         hasher: PasswordHasher,
         unitOfWork: UnitOfWork,
         changes: UserChanges,
-      ) => new CreateTenantOwner(users, hasher, unitOfWork, changes),
-      inject: [USERS, PASSWORD_HASHER, UNIT_OF_WORK, USER_CHANGES],
+        checklist: Checklist,
+      ) => new CreateTenantOwner(users, hasher, unitOfWork, changes, checklist),
+      inject: [USERS, PASSWORD_HASHER, UNIT_OF_WORK, USER_CHANGES, CHECKLIST],
     },
   ],
   exports: [PASSWORD_HASHER],

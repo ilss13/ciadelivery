@@ -1,4 +1,5 @@
 import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
+import { CHECKLIST, Checklist, OnboardingModule } from '@ciadelivery/onboarding';
 import { Logger, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DatabaseReady, STORAGE, StorageProvider, WarningLog } from '@ciadelivery/shared';
@@ -10,6 +11,8 @@ import {
 } from '@ciadelivery/tenancy';
 import { PermissionsGuard } from '@ciadelivery/users';
 import { AdminCatalog } from './application/admin-catalog';
+import { ImportCatalog } from './application/import-catalog';
+import { TestOrderCatalog } from './application/test-order-catalog';
 import { PublicCatalog } from './application/public-catalog';
 import { ValidatePublicCart } from './application/validate-cart';
 import { CATALOG, CatalogRepository } from './domain/catalog-repository';
@@ -21,6 +24,7 @@ import {
 } from './infrastructure/catalog.entities';
 import { TypeOrmCatalog } from './infrastructure/typeorm-catalog';
 import { AdminCategoriesController } from './presentation/admin-categories.controller';
+import { AdminCatalogImportController } from './presentation/admin-catalog-import.controller';
 import { AdminOptionsController } from './presentation/admin-options.controller';
 import { AdminProductsController } from './presentation/admin-products.controller';
 import {
@@ -34,6 +38,7 @@ import { DemoCatalogSeed } from './seed-demo-catalog';
   imports: [
     TenancyCoreModule,
     AuditModule,
+    OnboardingModule,
     StoresModule,
     TypeOrmModule.forFeature([
       CategoryEntity,
@@ -44,18 +49,35 @@ import { DemoCatalogSeed } from './seed-demo-catalog';
   ],
   controllers: [
     AdminCategoriesController,
+    AdminCatalogImportController,
     AdminProductsController,
     AdminOptionsController,
     PublicCategoriesController,
     PublicProductsController,
     PublicCartController,
   ],
-  exports: [ValidatePublicCart],
+  exports: [ValidatePublicCart, TestOrderCatalog],
   providers: [
     PermissionsGuard,
     DemoCatalogSeed,
     TypeOrmCatalog,
     { provide: CATALOG, useExisting: TypeOrmCatalog },
+    {
+      provide: ImportCatalog,
+      useFactory: (
+        catalog: CatalogRepository,
+        stores: CurrentStore,
+        unitOfWork: UnitOfWork,
+        checklist: Checklist,
+      ) => new ImportCatalog(catalog, stores, unitOfWork, checklist),
+      inject: [CATALOG, CURRENT_STORE, UNIT_OF_WORK, CHECKLIST],
+    },
+    {
+      provide: TestOrderCatalog,
+      useFactory: (catalog: CatalogRepository, stores: CurrentStore) =>
+        new TestOrderCatalog(catalog, stores),
+      inject: [CATALOG, CURRENT_STORE],
+    },
     {
       provide: AdminCatalog,
       useFactory: (

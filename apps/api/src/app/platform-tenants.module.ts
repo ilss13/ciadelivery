@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CHECKLIST, Checklist, OnboardingModule } from '@ciadelivery/onboarding';
 import { StoresModule } from '@ciadelivery/stores';
 import {
   CreateTenant,
@@ -17,7 +18,7 @@ import {
 } from '@ciadelivery/tenancy';
 
 @Module({
-  imports: [TenancyCoreModule, StoresModule],
+  imports: [TenancyCoreModule, StoresModule, OnboardingModule],
   controllers: [PlatformTenantsController],
   providers: [
     SuperAdminGuard,
@@ -27,8 +28,9 @@ import {
         tenants: TenantRepository,
         stores: Stores,
         unitOfWork: UnitOfWork,
-      ) => new CreateTenant(tenants, stores, unitOfWork),
-      inject: [TENANT_REPOSITORY, STORES, UNIT_OF_WORK],
+        checklist: Checklist,
+      ) => new CreateTenant(tenants, stores, unitOfWork, checklist),
+      inject: [TENANT_REPOSITORY, STORES, UNIT_OF_WORK, CHECKLIST],
     },
     {
       provide: UpdateTenant,
@@ -36,8 +38,9 @@ import {
         tenants: TenantRepository,
         stores: Stores,
         unitOfWork: UnitOfWork,
-      ) => new UpdateTenant(tenants, stores, unitOfWork),
-      inject: [TENANT_REPOSITORY, STORES, UNIT_OF_WORK],
+        checklist: Checklist,
+      ) => new UpdateTenant(tenants, stores, unitOfWork, checklist),
+      inject: [TENANT_REPOSITORY, STORES, UNIT_OF_WORK, CHECKLIST],
     },
     {
       provide: GetTenant,

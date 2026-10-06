@@ -5,7 +5,7 @@ import { Stores, StoreAddress } from '../domain/stores.port';
 import { Tenant } from '../domain/tenant';
 import { TenantRepository } from '../domain/tenant-repository';
 import { isReservedTenantSlug, isValidTenantSlug } from '../domain/tenant-slug';
-import { UnitOfWork } from '../domain/transaction-context';
+import { TransactionContext, UnitOfWork } from '../domain/transaction-context';
 
 export interface CreateTenantCommand {
   name: string;
@@ -19,6 +19,10 @@ export interface TenantWithStore {
   store: Awaited<ReturnType<Stores['createInitialStore']>>;
 }
 
+type TenantChecklist = {
+  seed(tenantId: string, tx: TransactionContext): Promise<void>;
+};
+
 export class CreateTenant {
   private readonly logger = new JsonLogger();
 
@@ -26,6 +30,7 @@ export class CreateTenant {
     private readonly tenants: TenantRepository,
     private readonly stores: Stores,
     private readonly unitOfWork: UnitOfWork,
+    private readonly checklist: TenantChecklist | null = null,
   ) {}
 
   async execute(command: CreateTenantCommand): Promise<TenantWithStore> {
@@ -78,6 +83,9 @@ export class CreateTenant {
         },
         tx,
       );
+      if (this.checklist !== null) {
+        await this.checklist.seed(tenant.id, tx);
+      }
       this.logger.log(`Tenant created ${tenant.id}`, 'CreateTenant');
       return { tenant, store };
     });

@@ -61,4 +61,57 @@ describe('CatalogPage', () => {
     );
     http.verify();
   });
+
+  it('shows catalog import errors by CSV line', async () => {
+    TestBed.configureTestingModule({
+      imports: [CatalogPage],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
+    });
+    const fixture = TestBed.createComponent(CatalogPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http
+      .expectOne((candidate) =>
+        candidate.url.includes('/api/v1/admin/categories'),
+      )
+      .flush({
+        data: [],
+        meta: { page: 1, pageSize: 100, total: 0, totalPages: 0 },
+      });
+    await fixture.whenStable();
+
+    fixture.componentInstance.importFile.set(
+      new File(['invalid'], 'cardapio.csv', { type: 'text/csv' }),
+    );
+    fixture.componentInstance.importCsv();
+    http
+      .expectOne((candidate) =>
+        candidate.url.includes('/api/v1/admin/catalog/import'),
+      )
+      .flush(
+        {
+          error: {
+            code: 'CATALOG_IMPORT_INVALID',
+            details: [
+              {
+                line: 3,
+                code: 'INVALID_PRICE',
+                message: 'Price must be a valid amount',
+              },
+            ],
+          },
+        },
+        { status: 422, statusText: 'Unprocessable Entity' },
+      );
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      'Linha 3: Informe um preço igual ou maior que zero.',
+    );
+    http.verify();
+  });
 });

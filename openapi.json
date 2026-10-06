@@ -320,6 +320,208 @@
         ]
       }
     },
+    "/api/v1/admin/onboarding": {
+      "get": {
+        "operationId": "AdminOnboardingController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingChecklistResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/{code}/complete": {
+      "post": {
+        "operationId": "AdminOnboardingController_complete",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingNoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingChecklistResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/{code}/skip": {
+      "post": {
+        "operationId": "AdminOnboardingController_skip",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingNoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingChecklistResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/store/publish": {
+      "post": {
+        "operationId": "AdminPublicationController_publish",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingChecklistResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/store/unpublish": {
+      "post": {
+        "operationId": "AdminPublicationController_unpublish",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingChecklistResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-onboarding"
+        ]
+      }
+    },
+    "/api/v1/platform/tenants/{id}/onboarding": {
+      "get": {
+        "operationId": "PlatformOnboardingController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingChecklistResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "platform-onboarding"
+        ]
+      }
+    },
+    "/api/v1/platform/pilot-status": {
+      "get": {
+        "operationId": "PlatformPilotStatusController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PilotStatusResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "platform-pilot"
+        ]
+      }
+    },
     "/api/v1/admin/audit-logs": {
       "get": {
         "operationId": "AdminAuditController_list",
@@ -1178,6 +1380,77 @@
         "responses": {
           "204": {
             "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-catalog"
+        ]
+      }
+    },
+    "/api/v1/admin/catalog/import-template": {
+      "get": {
+        "operationId": "AdminCatalogImportController_template",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-catalog"
+        ]
+      }
+    },
+    "/api/v1/admin/catalog/import": {
+      "post": {
+        "operationId": "AdminCatalogImportController_import",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogImportSummaryResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2187,6 +2460,32 @@
         },
         "tags": [
           "public-checkout"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/test": {
+      "post": {
+        "operationId": "AdminOrdersController_test",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOrderResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin-orders"
         ]
       }
     },
@@ -4286,6 +4585,211 @@
           "isManuallyClosed"
         ]
       },
+      "OnboardingStepResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "create_tenant",
+              "create_store",
+              "configure_branding",
+              "configure_domain",
+              "configure_address",
+              "configure_hours",
+              "configure_delivery",
+              "create_owner",
+              "import_catalog",
+              "connect_whatsapp",
+              "create_couriers",
+              "place_test_order",
+              "validate_notifications",
+              "train_team",
+              "publish_store"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "DONE",
+              "SKIPPED"
+            ]
+          },
+          "doneAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "doneBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "code",
+          "status",
+          "doneAt",
+          "doneBy",
+          "note"
+        ]
+      },
+      "OnboardingChecklistResponse": {
+        "type": "object",
+        "properties": {
+          "published": {
+            "type": "boolean"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OnboardingStepResponse"
+            }
+          },
+          "nextCode": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "create_tenant",
+              "create_store",
+              "configure_branding",
+              "configure_domain",
+              "configure_address",
+              "configure_hours",
+              "configure_delivery",
+              "create_owner",
+              "import_catalog",
+              "connect_whatsapp",
+              "create_couriers",
+              "place_test_order",
+              "validate_notifications",
+              "train_team",
+              "publish_store"
+            ]
+          },
+          "blockingCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "create_tenant",
+                "create_store",
+                "configure_branding",
+                "configure_domain",
+                "configure_address",
+                "configure_hours",
+                "configure_delivery",
+                "create_owner",
+                "import_catalog",
+                "connect_whatsapp",
+                "create_couriers",
+                "place_test_order",
+                "validate_notifications",
+                "train_team",
+                "publish_store"
+              ]
+            }
+          }
+        },
+        "required": [
+          "published",
+          "steps",
+          "nextCode",
+          "blockingCodes"
+        ]
+      },
+      "OnboardingNoteDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PilotTenantStatusResponse": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "published": {
+            "type": "boolean"
+          },
+          "pendingSteps": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "create_tenant",
+                "create_store",
+                "configure_branding",
+                "configure_domain",
+                "configure_address",
+                "configure_hours",
+                "configure_delivery",
+                "create_owner",
+                "import_catalog",
+                "connect_whatsapp",
+                "create_couriers",
+                "place_test_order",
+                "validate_notifications",
+                "train_team",
+                "publish_store"
+              ]
+            }
+          },
+          "storefrontOrdersLast7Days": {
+            "type": "number"
+          },
+          "failedWhatsAppMessages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "tenantId",
+          "name",
+          "slug",
+          "published",
+          "pendingSteps",
+          "storefrontOrdersLast7Days",
+          "failedWhatsAppMessages"
+        ]
+      },
+      "PilotStatusResponse": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "windowDays": {
+            "type": "number",
+            "example": 7
+          },
+          "tenants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PilotTenantStatusResponse"
+            }
+          }
+        },
+        "required": [
+          "generatedAt",
+          "windowDays",
+          "tenants"
+        ]
+      },
       "AuditLogResponse": {
         "type": "object",
         "properties": {
@@ -4978,6 +5482,33 @@
             "type": "boolean"
           }
         }
+      },
+      "CatalogImportSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "number"
+          },
+          "categories": {
+            "type": "number"
+          },
+          "products": {
+            "type": "number"
+          },
+          "optionGroups": {
+            "type": "number"
+          },
+          "options": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "rows",
+          "categories",
+          "products",
+          "optionGroups",
+          "options"
+        ]
       },
       "ProductResponse": {
         "type": "object",
@@ -6699,6 +7230,18 @@
           },
           "customerName": {
             "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "STOREFRONT",
+              "WHATSAPP",
+              "TEST"
+            ]
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
@@ -6708,7 +7251,9 @@
           "totalCents",
           "status",
           "fulfillment",
-          "customerName"
+          "customerName",
+          "source",
+          "notes"
         ]
       },
       "AdminOrderPageMeta": {
@@ -6781,6 +7326,14 @@
               "PICKUP"
             ]
           },
+          "source": {
+            "type": "string",
+            "enum": [
+              "STOREFRONT",
+              "WHATSAPP",
+              "TEST"
+            ]
+          },
           "paymentMethodCode": {
             "type": "string"
           },
@@ -6841,6 +7394,7 @@
           "orderNumber",
           "status",
           "fulfillment",
+          "source",
           "paymentMethodCode",
           "paymentLabel",
           "paymentInstructions",

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { actorTypeOf, AuditLogs, recordAudit, recordChanged } from '@ciadelivery/audit';
 import { DomainException, JsonLogger } from '@ciadelivery/shared';
 import { CurrentStore } from '@ciadelivery/stores';
-import { UnitOfWork } from '@ciadelivery/tenancy/domain';
+import { TransactionContext, UnitOfWork } from '@ciadelivery/tenancy/domain';
 import { RequestActor } from '@ciadelivery/users';
 import {
   credentialsHint,
@@ -70,6 +70,19 @@ export interface WhatsAppConnectionView {
   disconnectedAt: string | null;
 }
 
+type StepMarker = {
+  markDone(
+    input: { tenantId: string; code: string; actorId: string | null },
+    tx?: TransactionContext,
+  ): Promise<void>;
+};
+
+const idleSteps: StepMarker = {
+  async markDone(): Promise<void> {
+    return undefined;
+  },
+};
+
 export class AdminWhatsApp {
   private readonly logger = new JsonLogger();
 
@@ -82,6 +95,7 @@ export class AdminWhatsApp {
     private readonly encryptionKey: string,
     private readonly unitOfWork: UnitOfWork,
     private readonly audit: AuditLogs,
+    private readonly steps: StepMarker = idleSteps,
   ) {}
 
   async getConnection(actor: RequestActor): Promise<WhatsAppConnectionView> {
@@ -141,6 +155,14 @@ export class AdminWhatsApp {
     };
     await this.unitOfWork.run(async (tx) => {
       await this.connections.save(connection, tx);
+      await this.steps.markDone(
+        {
+          tenantId: store.tenantId,
+          code: 'connect_whatsapp',
+          actorId: actor.userId,
+        },
+        tx,
+      );
       const after = {
         status: connection.status,
         phoneNumberId: connection.phoneNumberId,

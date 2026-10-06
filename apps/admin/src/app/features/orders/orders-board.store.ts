@@ -42,6 +42,7 @@ export interface OrdersBoardStore {
   ): Observable<OrderCard>;
   listCouriers(): Observable<CourierOption[]>;
   assign(orderId: string, courierId: string): Observable<OrderCard>;
+  placeTestOrder(): Observable<OrderCard>;
 }
 
 export const ORDERS_BOARD_STORE = new InjectionToken<OrdersBoardStore>(
@@ -65,6 +66,8 @@ interface OrderPayload {
   status: string;
   fulfillment: string;
   customerName: string;
+  source: string;
+  notes: string | null;
 }
 
 const REALTIME_EVENTS = [
@@ -169,6 +172,12 @@ export class HttpOrdersBoardStore implements OrdersBoardStore {
       .pipe(map(toCard));
   }
 
+  placeTestOrder(): Observable<OrderCard> {
+    return this.http
+      .post<OrderPayload>(apiUrl('/api/v1/admin/orders/test'), {})
+      .pipe(map(toCard));
+  }
+
   private collect(
     statuses: readonly string[],
     from: string | null,
@@ -207,6 +216,8 @@ function toCard(order: OrderPayload): OrderCard {
     status: order.status,
     fulfillment: order.fulfillment,
     customerName: order.customerName,
+    source: order.source,
+    notes: order.notes,
   };
 }
 

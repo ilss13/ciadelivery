@@ -82,6 +82,18 @@ export class StoreEntity {
   })
   isManuallyClosed!: boolean;
 
+  @Column({
+    type: 'tinyint',
+    width: 1,
+    default: 0,
+    transformer: {
+      to: (value: boolean): number => (value ? 1 : 0),
+      from: (value: number | boolean | null): boolean =>
+        value === true || value === 1,
+    },
+  })
+  published!: boolean;
+
   @Column({ type: 'varchar', length: 64, default: 'America/Sao_Paulo' })
   timezone!: string;
 

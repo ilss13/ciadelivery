@@ -1,8 +1,21 @@
 import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CatalogModule, ValidatePublicCart } from '@ciadelivery/catalog';
-import { CUSTOMERS, CustomerRepository, CustomersModule } from '@ciadelivery/customers';
+import {
+  CatalogModule,
+  TestOrderCatalog,
+  ValidatePublicCart,
+} from '@ciadelivery/catalog';
+import {
+  CUSTOMERS,
+  CustomerRepository,
+  CustomersModule,
+} from '@ciadelivery/customers';
+import {
+  CHECKLIST,
+  Checklist,
+  OnboardingModule,
+} from '@ciadelivery/onboarding';
 import {
   ASSIGNMENTS,
   Assignments,
@@ -28,15 +41,23 @@ import { CourierOrders } from './application/courier-orders';
 import { CreatePublicOrder } from './application/create-public-order';
 import { GetPublicCheckout } from './application/get-public-checkout';
 import { GetPublicOrder } from './application/get-public-order';
+import { PlaceTestOrder } from './application/place-test-order';
 import { RequeueOutbox } from './application/requeue-outbox';
 import { ReviewPublicOrder } from './application/review-public-order';
 import { TransitionAdminOrder } from './application/transition-admin-order';
 import { ConfiguredDeliveryQuote } from './domain/configured-delivery-quote';
 import { DELIVERY_QUOTE, DeliveryQuotePort } from './domain/delivery-quote';
-import { COURIER_ORDERS, CourierOrderReader } from './domain/courier-order-reader';
+import {
+  COURIER_ORDERS,
+  CourierOrderReader,
+} from './domain/courier-order-reader';
 import { DOMAIN_EVENTS, DomainEventPublisher } from './domain/domain-event';
 import { ORDERS, OrderRepository } from './domain/order-repository';
 import { OUTBOX_STORE, OutboxStore } from './domain/outbox';
+import {
+  PUBLIC_ORDER_RATE_LIMIT,
+  PublicOrderRateLimit,
+} from './domain/public-order-rate-limit';
 import {
   IdempotencyRecordEntity,
   OrderEntity,
@@ -48,6 +69,7 @@ import { OutboxEventEntity } from './infrastructure/outbox.entities';
 import { TypeOrmCourierOrders } from './infrastructure/typeorm-courier-orders';
 import { TypeOrmOrders } from './infrastructure/typeorm-orders';
 import { TypeOrmOutbox } from './infrastructure/typeorm-outbox';
+import { RedisPublicOrderRateLimit } from './infrastructure/redis-public-order-rate-limit';
 import { AdminOrdersController } from './presentation/admin-orders.controller';
 import { CourierOrdersController } from './presentation/courier-orders.controller';
 import { PlatformOutboxController } from './presentation/platform-outbox.controller';
@@ -58,6 +80,7 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
   imports: [
     TenancyCoreModule,
     AuditModule,
+    OnboardingModule,
     StoresModule,
     CatalogModule,
     CustomersModule,
@@ -86,6 +109,11 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
     { provide: COURIER_ORDERS, useExisting: TypeOrmCourierOrders },
     TypeOrmOutbox,
     { provide: OUTBOX_STORE, useExisting: TypeOrmOutbox },
+    RedisPublicOrderRateLimit,
+    {
+      provide: PUBLIC_ORDER_RATE_LIMIT,
+      useExisting: RedisPublicOrderRateLimit,
+    },
     OutboxDomainEventPublisher,
     { provide: DOMAIN_EVENTS, useExisting: OutboxDomainEventPublisher },
     {
@@ -93,6 +121,36 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
       useFactory: (geocoding: GeocodingProvider) =>
         new ConfiguredDeliveryQuote(geocoding),
       inject: [GEOCODING],
+    },
+    {
+      provide: PlaceTestOrder,
+      useFactory: (
+        customers: CustomerRepository,
+        stores: CurrentStore,
+        catalog: TestOrderCatalog,
+        orders: OrderRepository,
+        unitOfWork: UnitOfWork,
+        events: DomainEventPublisher,
+        checklist: Checklist,
+      ) =>
+        new PlaceTestOrder(
+          customers,
+          stores,
+          catalog,
+          orders,
+          unitOfWork,
+          events,
+          checklist,
+        ),
+      inject: [
+        CUSTOMERS,
+        CURRENT_STORE,
+        TestOrderCatalog,
+        ORDERS,
+        UNIT_OF_WORK,
+        DOMAIN_EVENTS,
+        CHECKLIST,
+      ],
     },
     {
       provide: CreatePublicOrder,
@@ -105,6 +163,7 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
         orders: OrderRepository,
         unitOfWork: UnitOfWork,
         events: DomainEventPublisher,
+        rateLimit: PublicOrderRateLimit,
       ) =>
         new CreatePublicOrder(
           customers,
@@ -115,6 +174,7 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
           orders,
           unitOfWork,
           events,
+          rateLimit,
         ),
       inject: [
         CUSTOMERS,
@@ -125,6 +185,7 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
         ORDERS,
         UNIT_OF_WORK,
         DOMAIN_EVENTS,
+        PUBLIC_ORDER_RATE_LIMIT,
       ],
     },
     {
@@ -140,13 +201,23 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
         policies: DeliveryPolicies,
         carts: ValidatePublicCart,
         quotes: DeliveryQuotePort,
-      ) => new ReviewPublicOrder(customers, stores, policies, carts, quotes),
+        rateLimit: PublicOrderRateLimit,
+      ) =>
+        new ReviewPublicOrder(
+          customers,
+          stores,
+          policies,
+          carts,
+          quotes,
+          rateLimit,
+        ),
       inject: [
         CUSTOMERS,
         CURRENT_STORE,
         DELIVERY_POLICIES,
         ValidatePublicCart,
         DELIVERY_QUOTE,
+        PUBLIC_ORDER_RATE_LIMIT,
       ],
     },
     {
@@ -215,7 +286,14 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
         unitOfWork: UnitOfWork,
         audit: AuditLogs,
       ) =>
-        new AdvanceDelivery(orders, assignments, stores, events, unitOfWork, audit),
+        new AdvanceDelivery(
+          orders,
+          assignments,
+          stores,
+          events,
+          unitOfWork,
+          audit,
+        ),
       inject: [
         ORDERS,
         ASSIGNMENTS,

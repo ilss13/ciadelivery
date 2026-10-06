@@ -131,7 +131,7 @@ export class TypeOrmOrders implements OrderRepository {
       orderNumber: order.orderNumber,
       status: 'NEW',
       fulfillment: order.fulfillment,
-      source: 'STOREFRONT',
+      source: order.source,
       paymentMethodCode: order.paymentMethodCode,
       paymentLabel: order.paymentLabel,
       paymentInstructions: order.paymentInstructions,
@@ -177,6 +177,31 @@ export class TypeOrmOrders implements OrderRepository {
       note: null,
       createdAt: history.createdAt,
     });
+  }
+
+  async findTodayTestOrder(
+    tenantId: string,
+    storeId: string,
+    start: Date,
+    end: Date,
+    tx: TransactionContext,
+  ): Promise<AdminOrderSummary | null> {
+    const manager = managerOf(tx);
+    await manager.query('SELECT `id` FROM `tenants` WHERE `id` = ? FOR UPDATE', [
+      tenantId,
+    ]);
+    const row = await manager
+      .createQueryBuilder(OrderEntity, 'order')
+      .where('order.tenantId = :tenantId', { tenantId })
+      .andWhere('order.storeId = :storeId', { storeId })
+      .andWhere('order.source = :source', { source: 'TEST' })
+      .andWhere('order.status = :status', { status: 'NEW' })
+      .andWhere('order.createdAt >= :start', { start })
+      .andWhere('order.createdAt < :end', { end })
+      .orderBy('order.createdAt', 'ASC')
+      .addOrderBy('order.id', 'ASC')
+      .getOne();
+    return row === null ? null : toAdminOrder(row);
   }
 
   async findByTrackingTokenHash(hash: string): Promise<PublicOrder | null> {
@@ -340,6 +365,8 @@ function toAdminOrder(order: OrderEntity): AdminOrderSummary {
     status: order.status,
     fulfillment: order.fulfillment,
     customerName: order.customerName,
+    source: order.source,
+    notes: order.notes,
   };
 }
 
@@ -354,6 +381,7 @@ function toAdminDetail(
     orderNumber: published.orderNumber,
     status: published.status,
     fulfillment: published.fulfillment,
+    source: order.source,
     paymentMethodCode: published.paymentMethodCode,
     paymentLabel: published.paymentLabel,
     paymentInstructions: published.paymentInstructions,

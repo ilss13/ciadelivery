@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -6,7 +6,10 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { combineLatest, forkJoin, of, startWith, Subject, switchMap } from 'rxjs';
 import { apiUrl } from '../../core/api-url';
 import { centsToReais } from '../settings/money';
-import { catalogErrorMessage } from './catalog-messages';
+import {
+  catalogErrorMessage,
+  catalogImportErrorMessage,
+} from './catalog-messages';
 import { reorder } from './catalog-order';
 
 interface Category {
@@ -32,6 +35,16 @@ interface Page<T> {
   meta: { total: number };
 }
 
+interface CatalogImportError {
+  line: number;
+  code: string;
+  message: string;
+}
+
+interface CatalogImportSummary {
+  products: number;
+}
+
 @Component({
   selector: 'admin-catalog-page',
   imports: [ReactiveFormsModule, RouterLink],
@@ -53,6 +66,9 @@ export class CatalogPage implements OnInit {
   readonly categoryId = signal<string | null>(null);
   readonly editingId = signal<string | null>(null);
   readonly saving = signal(false);
+  readonly importFile = signal<File | null>(null);
+  readonly importing = signal(false);
+  readonly importErrors = signal<CatalogImportError[]>([]);
 
   readonly createForm = this.formBuilder.nonNullable.group({
     name: ['', Validators.required],
@@ -114,6 +130,74 @@ export class CatalogPage implements OnInit {
 
   price(cents: number): string {
     return centsToReais(cents);
+  }
+
+  importErrorMessage(code: string): string {
+    return catalogImportErrorMessage(code);
+  }
+
+  selectImportFile(event: Event): void {
+    const input = event.target;
+    this.importFile.set(
+      input instanceof HTMLInputElement ? (input.files?.item(0) ?? null) : null,
+    );
+    this.importErrors.set([]);
+  }
+
+  importCsv(): void {
+    const file = this.importFile();
+    if (file === null || this.importing()) {
+      this.error.set('Selecione um arquivo CSV.');
+      return;
+    }
+    const body = new FormData();
+    body.append('file', file);
+    this.importing.set(true);
+    this.error.set('');
+    this.importErrors.set([]);
+    this.http
+      .post<CatalogImportSummary>(
+        apiUrl('/api/v1/admin/catalog/import'),
+        body,
+      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (summary) => {
+          this.importing.set(false);
+          this.importFile.set(null);
+          this.notice.set(
+            `${summary.products} ${summary.products === 1 ? 'produto importado' : 'produtos importados'}.`,
+          );
+          this.reload();
+        },
+        error: (error: unknown) => {
+          this.importing.set(false);
+          const details = importErrorDetails(error);
+          this.importErrors.set(details);
+          if (details.length === 0) {
+            this.error.set(catalogErrorMessage(error));
+          }
+        },
+      });
+  }
+
+  downloadTemplate(): void {
+    this.http
+      .get(apiUrl('/api/v1/admin/catalog/import-template'), {
+        responseType: 'blob',
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'modelo-cardapio.csv';
+          link.click();
+          URL.revokeObjectURL(url);
+        },
+        error: (error: unknown) => this.error.set(catalogErrorMessage(error)),
+      });
   }
 
   selectedCategory(): Category | undefined {
@@ -281,4 +365,28 @@ export class CatalogPage implements OnInit {
         error: (error: unknown) => this.error.set(catalogErrorMessage(error)),
       });
   }
+}
+
+function importErrorDetails(error: unknown): CatalogImportError[] {
+  if (!(error instanceof HttpErrorResponse)) {
+    return [];
+  }
+  const body = error.error as
+    | { error?: { details?: unknown } }
+    | null;
+  const details = body?.error?.details;
+  if (!Array.isArray(details)) {
+    return [];
+  }
+  return details.filter((item): item is CatalogImportError => {
+    if (typeof item !== 'object' || item === null) {
+      return false;
+    }
+    const value = item as Record<string, unknown>;
+    return (
+      typeof value['line'] === 'number' &&
+      typeof value['code'] === 'string' &&
+      typeof value['message'] === 'string'
+    );
+  });
 }

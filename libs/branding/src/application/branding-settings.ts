@@ -10,7 +10,7 @@ import {
 } from '@ciadelivery/shared';
 import { RequestActor } from '@ciadelivery/users';
 import { CurrentStore } from '@ciadelivery/stores';
-import { UnitOfWork } from '@ciadelivery/tenancy/domain';
+import { TransactionContext, UnitOfWork } from '@ciadelivery/tenancy/domain';
 import { BrandingView, defaultBranding } from '../domain/branding';
 import { BrandingRepository } from '../domain/branding-repository';
 import { requireActorStore } from './actor-store';
@@ -36,6 +36,19 @@ export class GetBranding {
   }
 }
 
+type StepMarker = {
+  markDone(
+    input: { tenantId: string; code: string; actorId: string | null },
+    tx?: TransactionContext,
+  ): Promise<void>;
+};
+
+const idleSteps: StepMarker = {
+  async markDone(): Promise<void> {
+    return undefined;
+  },
+};
+
 export class SaveBranding {
   constructor(
     private readonly stores: CurrentStore,
@@ -43,6 +56,7 @@ export class SaveBranding {
     private readonly storage: StorageProvider,
     private readonly unitOfWork: UnitOfWork,
     private readonly audit: AuditLogs,
+    private readonly steps: StepMarker = idleSteps,
   ) {}
 
   async execute(
@@ -69,6 +83,14 @@ export class SaveBranding {
         before: { ...current },
         after: { ...stored },
       });
+      await this.steps.markDone(
+        {
+          tenantId: store.tenantId,
+          code: 'configure_branding',
+          actorId: actor.userId,
+        },
+        tx,
+      );
       return stored;
     });
     return presentBranding(saved, this.storage);
@@ -81,6 +103,7 @@ export class UploadBrandingImage {
     private readonly branding: BrandingRepository,
     private readonly storage: StorageProvider,
     private readonly log: WarningLog,
+    private readonly steps: StepMarker = idleSteps,
   ) {}
 
   async execute(
@@ -98,6 +121,11 @@ export class UploadBrandingImage {
       kind,
     });
     await this.branding.save({ ...current, [field]: stored.key });
+    await this.steps.markDone({
+      tenantId: store.tenantId,
+      code: 'configure_branding',
+      actorId: actor.userId,
+    });
     await discardStoredFile(
       this.storage,
       store.tenantId,

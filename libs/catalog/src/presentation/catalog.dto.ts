@@ -548,6 +548,23 @@ export class PublicProductPageResponse {
   meta!: PageMetaResponse;
 }
 
+export class CatalogImportSummaryResponse {
+  @ApiProperty()
+  rows!: number;
+
+  @ApiProperty()
+  categories!: number;
+
+  @ApiProperty()
+  products!: number;
+
+  @ApiProperty()
+  optionGroups!: number;
+
+  @ApiProperty()
+  options!: number;
+}
+
 export class ValidateCartItemDto {
   @ApiProperty()
   @IsUUID('4')

@@ -8,6 +8,7 @@
   "dependencies": {
     "@ciadelivery/audit": "0.0.1",
     "@ciadelivery/branding": "0.0.1",
+    "@ciadelivery/onboarding": "0.0.1",
     "@ciadelivery/shared": "0.0.1",
     "@ciadelivery/stores": "0.0.1",
     "@ciadelivery/tenancy": "0.0.1",

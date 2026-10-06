@@ -10,6 +10,7 @@ import {
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { createApiApplication } from './bootstrap';
+import { publishStoreForTests } from './publish-store-for-tests';
 
 const envSnapshot = { ...process.env };
 
@@ -250,6 +251,7 @@ describe('tenant and store context', () => {
     expect(response.body.planCode).toBe('STANDARD');
     expect(response.body.status).toBe('ACTIVE');
     createdIds.push(response.body.id as string);
+    await publishStoreForTests(app, response.body.id as string);
     return response.body.id as string;
   }
 });

@@ -35,7 +35,7 @@ services:
       MYSQL_PASSWORD: ciadelivery
       MYSQL_ROOT_PASSWORD: ciadelivery
     ports:
-      - '3306:3306'
+      - '${MYSQL_HOST_PORT:-3306}:3306'
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { DomainException } from '@ciadelivery/shared';
-import { UnitOfWork } from '@ciadelivery/tenancy/domain';
+import { TransactionContext, UnitOfWork } from '@ciadelivery/tenancy/domain';
 import { PasswordHasher } from '../domain/password-hasher';
 import { assertStrongPassword } from '../domain/password-policy';
 import {
@@ -61,12 +61,26 @@ export interface CreateTenantOwnerCommand {
   password: string;
 }
 
+type StepMarker = {
+  markDone(
+    input: { tenantId: string; code: string; actorId: string | null },
+    tx?: TransactionContext,
+  ): Promise<void>;
+};
+
+const idleSteps: StepMarker = {
+  async markDone(): Promise<void> {
+    return undefined;
+  },
+};
+
 export class CreateTenantUser {
   constructor(
     private readonly users: Users,
     private readonly hasher: PasswordHasher,
     private readonly unitOfWork: UnitOfWork,
     private readonly changes: UserChanges,
+    private readonly steps: StepMarker = idleSteps,
   ) {}
 
   async execute(command: CreateTenantUserCommand): Promise<UserProfile> {
@@ -100,6 +114,16 @@ export class CreateTenantUser {
         },
         tx,
       );
+      if (role === 'OWNER') {
+        await this.steps.markDone(
+          {
+            tenantId: scope.tenantId,
+            code: 'create_owner',
+            actorId: command.actor.userId,
+          },
+          tx,
+        );
+      }
     });
     return toProfile(user, effectivePermissions(role, overrides));
   }
@@ -111,6 +135,7 @@ export class UpdateTenantUser {
     private readonly hasher: PasswordHasher,
     private readonly unitOfWork: UnitOfWork,
     private readonly changes: UserChanges,
+    private readonly steps: StepMarker = idleSteps,
   ) {}
 
   async execute(command: UpdateTenantUserCommand): Promise<UserProfile> {
@@ -169,6 +194,16 @@ export class UpdateTenantUser {
         },
         tx,
       );
+      if (role === 'OWNER') {
+        await this.steps.markDone(
+          {
+            tenantId: scope.tenantId,
+            code: 'create_owner',
+            actorId: command.actor.userId,
+          },
+          tx,
+        );
+      }
     });
     return toProfile(updated, effectivePermissions(role, overrides));
   }
@@ -224,6 +259,7 @@ export class CreateTenantOwner {
     private readonly hasher: PasswordHasher,
     private readonly unitOfWork: UnitOfWork,
     private readonly changes: UserChanges,
+    private readonly steps: StepMarker = idleSteps,
   ) {}
 
   async execute(command: CreateTenantOwnerCommand): Promise<UserProfile> {
@@ -252,6 +288,14 @@ export class CreateTenantOwner {
           userId: user.id,
           before: null,
           after: userAudit(user, [], false),
+        },
+        tx,
+      );
+      await this.steps.markDone(
+        {
+          tenantId: command.tenantId,
+          code: 'create_owner',
+          actorId: command.actor.userId,
         },
         tx,
       );

@@ -16,6 +16,7 @@ import { SessionService } from '../../core/session.service';
   imports: [RouterLink],
   template: `
     <h1>Início</h1>
+    <p><a routerLink="/implantacao">Abrir implantação</a></p>
     @if (canReadOrders()) {
       <p><a routerLink="/">Abrir o painel de hoje</a></p>
     }

@@ -37,6 +37,19 @@ export interface DeliveryConfigView {
   originLongitude: number | null;
 }
 
+type StepMarker = {
+  markDone(
+    input: { tenantId: string; code: string; actorId: string | null },
+    tx?: TransactionContext,
+  ): Promise<void>;
+};
+
+const idleSteps: StepMarker = {
+  async markDone(): Promise<void> {
+    return undefined;
+  },
+};
+
 export class AdminDelivery {
   private readonly logger = new JsonLogger();
 
@@ -46,6 +59,7 @@ export class AdminDelivery {
     private readonly geocoding: GeocodingProvider,
     private readonly unitOfWork: UnitOfWork,
     private readonly audit: AuditLogs,
+    private readonly steps: StepMarker = idleSteps,
   ) {}
 
   async getConfig(actor: RequestActor): Promise<DeliveryConfigView> {
@@ -91,6 +105,14 @@ export class AdminDelivery {
           });
         }
       }
+      await this.steps.markDone(
+        {
+          tenantId: store.tenantId,
+          code: 'configure_delivery',
+          actorId: actor.userId,
+        },
+        tx,
+      );
       return updated;
     });
     this.logger.log(`Delivery config updated ${store.id}`);
@@ -125,6 +147,14 @@ export class AdminDelivery {
           after: { zones: zonesAudit(next) },
         });
       }
+      await this.steps.markDone(
+        {
+          tenantId: store.tenantId,
+          code: 'configure_delivery',
+          actorId: actor.userId,
+        },
+        tx,
+      );
       return next;
     });
     this.logger.log(`Delivery zones replaced ${store.id}`);
@@ -153,6 +183,14 @@ export class AdminDelivery {
         before: null,
         changes: zoneAudit(created),
       });
+      await this.steps.markDone(
+        {
+          tenantId: store.tenantId,
+          code: 'configure_delivery',
+          actorId: actor.userId,
+        },
+        tx,
+      );
       return created;
     });
   }

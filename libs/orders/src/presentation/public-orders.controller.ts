@@ -52,29 +52,35 @@ export class PublicOrdersController {
   @ApiOkResponse({ type: OrderReviewResponse })
   @UseGuards(PublicTenantGuard)
   @UseInterceptors(TenantContextInterceptor)
-  review(@Body() body: ReviewOrderDto): Promise<OrderReviewResponse> {
-    return this.reviewOrder.execute({
-      fulfillment: body.fulfillment,
-      address:
-        body.address === undefined || body.address === null
-          ? null
-          : {
-              line: body.address.line,
-              number: body.address.number,
-              district: body.address.district,
-              city: body.address.city,
-              state: body.address.state,
-              postalCode: body.address.postalCode,
-              complement: body.address.complement ?? null,
-            },
-      paymentMethodCode: body.paymentMethodCode,
-      items: body.items.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        optionIds: item.optionIds,
-        notes: item.notes ?? null,
-      })),
-    });
+  review(
+    @Body() body: ReviewOrderDto,
+    @Req() request: { ip?: string; socket?: { remoteAddress?: string } },
+  ): Promise<OrderReviewResponse> {
+    return this.reviewOrder.execute(
+      {
+        fulfillment: body.fulfillment,
+        address:
+          body.address === undefined || body.address === null
+            ? null
+            : {
+                line: body.address.line,
+                number: body.address.number,
+                district: body.address.district,
+                city: body.address.city,
+                state: body.address.state,
+                postalCode: body.address.postalCode,
+                complement: body.address.complement ?? null,
+              },
+        paymentMethodCode: body.paymentMethodCode,
+        items: body.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          optionIds: item.optionIds,
+          notes: item.notes ?? null,
+        })),
+      },
+      clientIp(request),
+    );
   }
 
   @Post()

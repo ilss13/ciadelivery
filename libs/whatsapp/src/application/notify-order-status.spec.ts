@@ -29,6 +29,7 @@ describe('NotifyOrderStatus', () => {
     customerName: 'Ana',
     customerPhone: '11988887777',
     totalCents: 3990,
+    source: 'STOREFRONT',
     storeName: 'Pizzaria',
     hasTrackingToken: true,
   };
@@ -73,6 +74,14 @@ describe('NotifyOrderStatus', () => {
     expect((harness.provider as LoggingWhatsAppProvider).outbox).toHaveLength(0);
     expect(harness.messages.rows[0]?.status).toBe('SKIPPED');
     expect(harness.messages.rows[0]?.lastError).toBe('TEMPLATE_DISABLED');
+  });
+
+  it('does not create or send a WhatsApp message for a test order', async () => {
+    const harness = createHarness({ ...order, source: 'TEST' });
+    await harness.notify.execute('event-1', 1);
+    expect(harness.messages.rows).toEqual([]);
+    expect((harness.provider as LoggingWhatsAppProvider).outbox).toEqual([]);
+    expect(harness.inbox.created).toBe(0);
   });
 
   it('does not write a message for another tenant', async () => {

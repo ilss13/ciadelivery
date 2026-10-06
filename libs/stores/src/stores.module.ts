@@ -1,3 +1,4 @@
+import { CHECKLIST, Checklist, OnboardingModule } from '@ciadelivery/onboarding';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GEOCODING, GeocodingProvider } from '@ciadelivery/shared';
@@ -14,7 +15,11 @@ import { TypeOrmStores } from './infrastructure/typeorm-stores';
 import { AdminStoreController } from './presentation/admin-store.controller';
 
 @Module({
-  imports: [TenancyCoreModule, TypeOrmModule.forFeature([StoreEntity])],
+  imports: [
+    TenancyCoreModule,
+    OnboardingModule,
+    TypeOrmModule.forFeature([StoreEntity]),
+  ],
   controllers: [AdminStoreController],
   providers: [
     PermissionsGuard,
@@ -28,9 +33,12 @@ import { AdminStoreController } from './presentation/admin-store.controller';
     },
     {
       provide: UpdateStoreSettings,
-      useFactory: (stores: CurrentStore, geocoding: GeocodingProvider) =>
-        new UpdateStoreSettings(stores, geocoding),
-      inject: [CURRENT_STORE, GEOCODING],
+      useFactory: (
+        stores: CurrentStore,
+        geocoding: GeocodingProvider,
+        checklist: Checklist,
+      ) => new UpdateStoreSettings(stores, geocoding, checklist),
+      inject: [CURRENT_STORE, GEOCODING, CHECKLIST],
     },
   ],
   exports: [STORES, CURRENT_STORE],

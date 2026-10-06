@@ -1,7 +1,7 @@
 import { AuditLogs, recordChanged } from '@ciadelivery/audit';
 import { RequestActor } from '@ciadelivery/users';
 import { CurrentStore } from '@ciadelivery/stores';
-import { UnitOfWork } from '@ciadelivery/tenancy/domain';
+import { TransactionContext, UnitOfWork } from '@ciadelivery/tenancy/domain';
 import { BusinessDay, completeWeek } from '../domain/business-hours';
 import { BusinessHoursRepository } from '../domain/business-hours-repository';
 import { requireActorStore } from './actor-store';
@@ -18,12 +18,26 @@ export class GetBusinessHours {
   }
 }
 
+type StepMarker = {
+  markDone(
+    input: { tenantId: string; code: string; actorId: string | null },
+    tx?: TransactionContext,
+  ): Promise<void>;
+};
+
+const idleSteps: StepMarker = {
+  async markDone(): Promise<void> {
+    return undefined;
+  },
+};
+
 export class ReplaceBusinessHours {
   constructor(
     private readonly stores: CurrentStore,
     private readonly hours: BusinessHoursRepository,
     private readonly unitOfWork: UnitOfWork,
     private readonly audit: AuditLogs,
+    private readonly steps: StepMarker = idleSteps,
   ) {}
 
   async execute(
@@ -43,6 +57,14 @@ export class ReplaceBusinessHours {
         before: { hours: current },
         after: { hours: saved },
       });
+      await this.steps.markDone(
+        {
+          tenantId: store.tenantId,
+          code: 'configure_hours',
+          actorId: actor.userId,
+        },
+        tx,
+      );
       return saved;
     });
   }

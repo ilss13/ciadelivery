@@ -40,7 +40,10 @@ export class TypeOrmReports implements ReportsReader {
          COALESCE(SUM(CASE WHEN source = 'STOREFRONT' THEN 1 ELSE 0 END), 0) AS sourceStorefront,
          COALESCE(SUM(CASE WHEN source = 'WHATSAPP' THEN 1 ELSE 0 END), 0) AS sourceWhatsapp
        FROM orders
-       WHERE tenant_id = ? AND created_at >= ? AND created_at < ?`,
+       WHERE tenant_id = ?
+         AND source <> 'TEST'
+         AND created_at >= ?
+         AND created_at < ?`,
       [window.tenantId, window.start, window.end],
     );
     const record = firstRow(rows);
@@ -84,6 +87,7 @@ export class TypeOrmReports implements ReportsReader {
        WHERE o.tenant_id = ?
          AND o.created_at >= ?
          AND o.created_at < ?
+         AND o.source <> 'TEST'
          AND o.status NOT IN ('CANCELLED', 'REJECTED')
        GROUP BY oi.product_id
        ORDER BY quantity DESC, subtotalCents DESC
@@ -110,6 +114,7 @@ export class TypeOrmReports implements ReportsReader {
          ON c.id = o.customer_id
         AND c.tenant_id = o.tenant_id
        WHERE o.tenant_id = ?
+         AND o.source <> 'TEST'
          AND o.created_at >= ?
          AND o.created_at < ?
        GROUP BY c.id, c.name, c.phone
@@ -161,6 +166,7 @@ export class TypeOrmReports implements ReportsReader {
          fulfillment AS fulfillment
        FROM orders
        WHERE tenant_id = ?
+         AND source <> 'TEST'
          AND created_at >= ?
          AND created_at < ?
        ORDER BY created_at ASC, order_number ASC`,
@@ -187,6 +193,7 @@ export class TypeOrmReports implements ReportsReader {
              COALESCE(SUM(status = 'OUT_FOR_DELIVERY'), 0) AS outForDeliveryCount,
              COALESCE(SUM(CASE
                WHEN created_at >= ? AND created_at < ?
+                 AND source <> 'TEST'
                  AND status NOT IN ('CANCELLED', 'REJECTED')
                THEN total_cents ELSE 0 END), 0) AS revenueCents
            FROM orders

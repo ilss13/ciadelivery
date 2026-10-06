@@ -5,6 +5,7 @@ import Redis from 'ioredis';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { createApiApplication } from './bootstrap';
+import { publishStoreForTests } from './publish-store-for-tests';
 
 const envSnapshot = { ...process.env };
 const adminEmail = 'platform-admin@ciadelivery.test';
@@ -442,6 +443,7 @@ describe('phase 1 acceptance', () => {
       })
       .expect(201);
     createdTenantIds.push(tenant.body.id as string);
+    await publishStoreForTests(app, tenant.body.id as string);
     const email = `${prefix}-${randomBytes(3).toString('hex')}@example.com`;
     emails.push(email);
     await request(app.getHttpServer())

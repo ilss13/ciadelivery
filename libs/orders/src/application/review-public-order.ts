@@ -5,6 +5,7 @@ import { DomainException } from '@ciadelivery/shared';
 import { CurrentStore } from '@ciadelivery/stores';
 import { DeliveryQuotePort, Fulfillment } from '../domain/delivery-quote';
 import { OrderAddressDraft, OrderReview } from '../domain/order';
+import { PublicOrderRateLimit } from '../domain/public-order-rate-limit';
 import {
   assertCart,
   assertQuote,
@@ -31,10 +32,12 @@ export class ReviewPublicOrder {
     private readonly policies: DeliveryPolicies,
     private readonly carts: ValidatePublicCart,
     private readonly quotes: DeliveryQuotePort,
+    private readonly rateLimit: PublicOrderRateLimit,
   ) {}
 
-  async execute(input: ReviewOrderInput): Promise<OrderReview> {
+  async execute(input: ReviewOrderInput, ip: string): Promise<OrderReview> {
     const store = await requireStore(this.stores);
+    await this.rateLimit.consume(store.tenantId, ip);
     const address = resolveAddress(input.fulfillment, input.address);
     const cart = await this.carts.execute(
       input.items.map((item) => ({

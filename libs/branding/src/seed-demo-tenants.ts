@@ -3,6 +3,7 @@ import {
   APP_CONFIG,
   AddressInput,
   AppConfig,
+  DatabaseReady,
   DomainException,
   GEOCODING,
   GeocodingProvider,
@@ -110,6 +111,7 @@ export class DemoTenantSeed implements OnModuleInit {
     @Inject(GEOCODING) private readonly geocoding: GeocodingProvider,
     @Inject(CURRENT_STORE) private readonly currentStore: CurrentStore,
     private readonly createTenant: CreateTenant,
+    private readonly database: DatabaseReady,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -159,6 +161,30 @@ export class DemoTenantSeed implements OnModuleInit {
 
     await this.ensureOwner(tenant.id, store.id, demo.ownerName, email);
     await runWithTenant(tenant, () => this.ensurePresentation(demo, email));
+    await this.publishDemo(tenant.id);
+  }
+
+  private async publishDemo(tenantId: string): Promise<void> {
+    const dataSource = await this.database.ensure();
+    const now = new Date();
+    await dataSource.query(
+      'UPDATE `stores` SET `published` = 1, `updated_at` = ? WHERE `tenant_id` = ?',
+      [now, tenantId],
+    );
+    await dataSource.query(
+      `UPDATE \`onboarding_steps\`
+       SET \`status\` = 'DONE', \`done_at\` = COALESCE(\`done_at\`, ?)
+       WHERE \`tenant_id\` = ?
+         AND \`code\` IN (
+           'configure_branding',
+           'configure_address',
+           'configure_hours',
+           'configure_delivery',
+           'create_owner',
+           'publish_store'
+         )`,
+      [now, tenantId],
+    );
   }
 
   private async ensureOrigin(
