@@ -167,6 +167,7 @@ import { DemoTenantSeed } from './seed-demo-tenants';
       inject: [UpdateTenant, TENANT_REPOSITORY, APP_CONFIG],
     },
   ],
+  exports: [DemoTenantSeed],
 })
 export class BrandingModule {}
 

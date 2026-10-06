@@ -1,4 +1,5 @@
 import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
+import { BrandingModule } from '@ciadelivery/branding';
 import { CHECKLIST, Checklist, OnboardingModule } from '@ciadelivery/onboarding';
 import { Logger, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -38,6 +39,7 @@ import { DemoCatalogSeed } from './seed-demo-catalog';
   imports: [
     TenancyCoreModule,
     AuditModule,
+    BrandingModule,
     OnboardingModule,
     StoresModule,
     TypeOrmModule.forFeature([

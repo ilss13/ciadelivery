@@ -98,6 +98,7 @@ const DEMOS: readonly DemoTenant[] = [
 @Injectable()
 export class DemoTenantSeed implements OnModuleInit {
   private readonly logger = new JsonLogger();
+  private seeding: Promise<void> | null = null;
 
   constructor(
     @Inject(APP_CONFIG) private readonly config: AppConfig,
@@ -115,10 +116,18 @@ export class DemoTenantSeed implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    if (!this.config.seedDemo) {
-      return;
-    }
+    await this.ensureReady();
+  }
 
+  ensureReady(): Promise<void> {
+    if (!this.config.seedDemo) {
+      return Promise.resolve();
+    }
+    this.seeding ??= this.seedAll();
+    return this.seeding;
+  }
+
+  private async seedAll(): Promise<void> {
     assertStrongPassword(this.config.demoOwnerPassword);
     for (const demo of DEMOS) {
       await this.ensure(demo);

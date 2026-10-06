@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { DemoTenantSeed } from '@ciadelivery/branding';
 import {
   APP_CONFIG,
   AppConfig,
@@ -41,12 +42,14 @@ export class DemoCourierSeed implements OnModuleInit {
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: UnitOfWork,
     @Inject(COURIERS) private readonly couriers: Couriers,
+    private readonly demoTenants: DemoTenantSeed,
   ) {}
 
   async onModuleInit(): Promise<void> {
     if (!this.config.seedDemo) {
       return;
     }
+    await this.demoTenants.ensureReady();
 
     assertStrongPassword(this.config.demoOwnerPassword);
     const tenant = await this.tenants.findBySlug(PIZZA_SLUG);

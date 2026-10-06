@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { DemoTenantSeed } from '@ciadelivery/branding';
 import { APP_CONFIG, AppConfig, JsonLogger } from '@ciadelivery/shared';
 import {
   STORES,
@@ -88,12 +89,14 @@ export class DemoCatalogSeed implements OnModuleInit {
     @Inject(TENANT_REPOSITORY) private readonly tenants: TenantRepository,
     @Inject(STORES) private readonly stores: Stores,
     @Inject(CATALOG) private readonly catalog: CatalogRepository,
+    private readonly demoTenants: DemoTenantSeed,
   ) {}
 
   async onModuleInit(): Promise<void> {
     if (!this.config.seedDemo) {
       return;
     }
+    await this.demoTenants.ensureReady();
 
     const tenant = await this.tenants.findBySlug(PIZZA_SLUG);
     if (tenant === null) {

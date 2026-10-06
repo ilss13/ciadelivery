@@ -1,4 +1,5 @@
 import { AUDIT_LOGS, AuditLogs, AuditModule } from '@ciadelivery/audit';
+import { BrandingModule } from '@ciadelivery/branding';
 import { CHECKLIST, Checklist, OnboardingModule } from '@ciadelivery/onboarding';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -41,6 +42,7 @@ import { DemoCourierSeed } from './seed-demo-courier';
     TenancyCoreModule,
     OnboardingModule,
     AuditModule,
+    BrandingModule,
     StoresModule,
     UsersModule,
     AuthModule,
