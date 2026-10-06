@@ -48,6 +48,9 @@ export interface AppConfig {
   metaAppSecret: string;
   metaWebhookVerifyToken: string;
   whatsappAllowSessionMessages: boolean;
+  llmDriver: 'none' | 'http';
+  llmApiUrl: string;
+  aiConfidenceMin: number;
   metricsToken: string | null;
 }
 
@@ -266,8 +269,41 @@ export function loadAppConfig(env: Env = process.env): AppConfig {
     ...storageConfig(env, apiPort),
     ...geocodingConfig(env),
     ...whatsappConfig(env, nodeEnv),
+    ...llmConfig(env),
     metricsToken: metricsToken(env),
   };
+}
+
+function llmConfig(
+  env: Env,
+): Pick<AppConfig, 'llmDriver' | 'llmApiUrl' | 'aiConfidenceMin'> {
+  const rawDriver = env['LLM_DRIVER']?.trim() ?? '';
+  const llmDriver = rawDriver.length === 0 ? 'none' : rawDriver;
+  if (llmDriver !== 'none' && llmDriver !== 'http') {
+    throw new Error('Invalid LLM_DRIVER: expected none or http');
+  }
+  const llmApiUrl = env['LLM_API_URL']?.trim() ?? '';
+  if (llmDriver === 'http' && llmApiUrl.length === 0) {
+    throw new Error('Missing required environment variables: LLM_API_URL');
+  }
+  if (llmApiUrl.length > 0) {
+    try {
+      new URL(llmApiUrl);
+    } catch {
+      throw new Error('Invalid LLM_API_URL: expected an absolute URL');
+    }
+  }
+  const rawConfidence = env['AI_CONFIDENCE_MIN']?.trim() ?? '';
+  const aiConfidenceMin =
+    rawConfidence.length === 0 ? 0.6 : Number(rawConfidence);
+  if (
+    !Number.isFinite(aiConfidenceMin) ||
+    aiConfidenceMin < 0 ||
+    aiConfidenceMin > 1
+  ) {
+    throw new Error('Invalid AI_CONFIDENCE_MIN: expected a number from 0 to 1');
+  }
+  return { llmDriver, llmApiUrl, aiConfidenceMin };
 }
 
 function metricsToken(env: Env): string | null {

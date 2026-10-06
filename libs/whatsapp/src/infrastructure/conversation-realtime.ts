@@ -2,6 +2,7 @@ import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { APP_CONFIG, AppConfig, JsonLogger } from '@ciadelivery/shared';
 import Redis from 'ioredis';
 import { ConversationEvents } from '../domain/conversations.port';
+import { ConversationMode } from '../domain/conversation';
 
 const REALTIME_CHANNEL = 'realtime';
 
@@ -51,6 +52,25 @@ export class RedisConversationEvents
       },
     };
     await this.redis.publish(REALTIME_CHANNEL, JSON.stringify(message));
+  }
+
+  async modeChanged(input: {
+    storeId: string;
+    conversationId: string;
+    mode: ConversationMode;
+    reason: string;
+  }): Promise<void> {
+    if (this.redis === null) {
+      throw new Error('The conversation publisher is not ready');
+    }
+    await this.redis.publish(
+      REALTIME_CHANNEL,
+      JSON.stringify({
+        event: 'conversation.mode_changed',
+        rooms: [`store:${input.storeId}`, `conversation:${input.conversationId}`],
+        payload: input,
+      }),
+    );
   }
 
   async onModuleDestroy(): Promise<void> {

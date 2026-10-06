@@ -2,7 +2,13 @@ import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { loadEnvFile, PlatformModule } from '@ciadelivery/shared';
-import { WHATSAPP } from '@ciadelivery/whatsapp';
+import {
+  CONVERSATION_TOOLS,
+  CONVERSATION_ORDERS,
+  ConversationOrders,
+  ConversationTools,
+  WHATSAPP,
+} from '@ciadelivery/whatsapp';
 import { WhatsAppWorkerModule } from '@ciadelivery/whatsapp/worker';
 import Redis from 'ioredis';
 import { io, Socket } from 'socket.io-client';
@@ -75,6 +81,10 @@ describe('whatsapp conversations', () => {
       if (dataSource.isInitialized && createdTenantIds.length > 0) {
         const marks = createdTenantIds.map(() => '?').join(', ');
         await dataSource.query(
+          `DELETE FROM order_previews WHERE tenant_id IN (${marks})`,
+          createdTenantIds,
+        );
+        await dataSource.query(
           `DELETE FROM whatsapp_messages WHERE tenant_id IN (${marks})`,
           createdTenantIds,
         );
@@ -120,6 +130,22 @@ describe('whatsapp conversations', () => {
         );
         await dataSource.query(
           `DELETE FROM branding_configs WHERE tenant_id IN (${marks})`,
+          createdTenantIds,
+        );
+        await dataSource.query(
+          `DELETE FROM product_options WHERE tenant_id IN (${marks})`,
+          createdTenantIds,
+        );
+        await dataSource.query(
+          `DELETE FROM product_option_groups WHERE tenant_id IN (${marks})`,
+          createdTenantIds,
+        );
+        await dataSource.query(
+          `DELETE FROM products WHERE tenant_id IN (${marks})`,
+          createdTenantIds,
+        );
+        await dataSource.query(
+          `DELETE FROM categories WHERE tenant_id IN (${marks})`,
           createdTenantIds,
         );
         await dataSource.query(
@@ -272,6 +298,32 @@ describe('whatsapp conversations', () => {
       .expect(404);
     expect(hidden.body.error.code).toBe('CONVERSATION_NOT_FOUND');
 
+    const defaults = await request(app.getHttpServer())
+      .get('/api/v1/admin/whatsapp/ai')
+      .set('Authorization', `Bearer ${ownerA.token}`)
+      .expect(200);
+    expect(defaults.body).toEqual({
+      aiEnabled: false,
+      aiAutoReply: false,
+    });
+    await request(app.getHttpServer())
+      .put('/api/v1/admin/whatsapp/ai')
+      .set('Authorization', `Bearer ${ownerA.token}`)
+      .send({ aiEnabled: true, aiAutoReply: false })
+      .expect(200);
+    const foreignMode = await request(app.getHttpServer())
+      .post(`/api/v1/admin/whatsapp/conversations/${conversationId}/mode`)
+      .set('Authorization', `Bearer ${ownerB.token}`)
+      .send({ mode: 'BOT' })
+      .expect(404);
+    expect(foreignMode.body.error.code).toBe('CONVERSATION_NOT_FOUND');
+    const botMode = await request(app.getHttpServer())
+      .post(`/api/v1/admin/whatsapp/conversations/${conversationId}/mode`)
+      .set('Authorization', `Bearer ${ownerA.token}`)
+      .send({ mode: 'BOT' })
+      .expect(200);
+    expect(botMode.body.mode).toBe('BOT');
+
     await waitFor(() => ownerEvents.length > 0);
     await delay(300);
     expect(kitchenEvents).toEqual([]);
@@ -340,6 +392,303 @@ describe('whatsapp conversations', () => {
     expect(blocked.body.error.code).toBe('WHATSAPP_NOT_CONNECTED');
   });
 
+  it('hands a bot conversation to a person when no LLM endpoint is configured', async () => {
+    const owner = await createOwner('talk-no-llm', 'Talk No LLM');
+    const phoneNumberId = String(Date.now()) + String(randomBytes(2).readUInt16BE(0));
+    await connect(owner.token, phoneNumberId);
+    const firstId = `wamid.${randomBytes(6).toString('hex')}`;
+    const first = JSON.stringify(
+      webhook(phoneNumberId, firstId, '5511777666555', null, 'olá'),
+    );
+    await postWebhook(first, sign(first)).expect(200);
+    const listed = await request(app.getHttpServer())
+      .get('/api/v1/admin/whatsapp/conversations')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    const conversationId = listed.body.data[0].id as string;
+    await request(app.getHttpServer())
+      .put('/api/v1/admin/whatsapp/ai')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ aiEnabled: true, aiAutoReply: false })
+      .expect(200);
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/whatsapp/conversations/${conversationId}/mode`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ mode: 'BOT' })
+      .expect(200);
+
+    const nextId = `wamid.${randomBytes(6).toString('hex')}`;
+    const next = JSON.stringify(
+      webhook(phoneNumberId, nextId, '5511777666555', null, 'vocês abrem hoje?'),
+    );
+    await postWebhook(next, sign(next)).expect(200);
+    const dataSource = app.get(DataSource);
+    await waitFor(async () => {
+      const rows: Array<{ mode: string }> = await dataSource.query(
+        'SELECT mode FROM conversations WHERE tenant_id = ? AND id = ?',
+        [owner.tenantId, conversationId],
+      );
+      return rows[0]?.mode === 'HUMAN';
+    });
+    const turns = await dataSource.query(
+      `SELECT confidence, outcome, prompt_hash
+         FROM ai_turns
+        WHERE tenant_id = ? AND conversation_id = ?`,
+      [owner.tenantId, conversationId],
+    );
+    expect(turns).toEqual([
+      expect.objectContaining({
+        confidence: '0.0000',
+        outcome: 'HANDOFF',
+        prompt_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      }),
+    ]);
+    await waitForMessage(
+      owner.tenantId,
+      'Vou chamar uma pessoa da equipe para continuar seu atendimento.',
+    );
+  });
+
+  it('builds an isolated server-priced preview and refuses unavailable or out-of-area items', async () => {
+    const ownerA = await createOwner('tools-a', 'Tools A');
+    const ownerB = await createOwner('tools-b', 'Tools B');
+    await openStore(ownerA.token);
+    const productA = await createProduct(ownerA.token, 'X-Bacon', 2000, true);
+    const unavailable = await createProduct(
+      ownerA.token,
+      'X-Salada indisponível',
+      1800,
+      false,
+    );
+    await createProduct(ownerB.token, 'X-Bacon secreto', 9900, true);
+    const dataSource = app.get(DataSource);
+    const stores: Array<{ id: string }> = await dataSource.query(
+      'SELECT id FROM stores WHERE tenant_id = ? LIMIT 1',
+      [ownerA.tenantId],
+    );
+    const storeId = stores[0]?.id;
+    if (storeId === undefined) {
+      throw new Error('missing store');
+    }
+    const conversationId = randomUUID();
+    const now = new Date();
+    await dataSource.query(
+      `INSERT INTO conversations (
+         id, tenant_id, store_id, customer_id, contact_phone, contact_name,
+         mode, linked_order_id, last_message_at, created_at, updated_at
+       ) VALUES (?, ?, ?, NULL, '5511999991234', 'Ana', 'BOT', NULL, ?, ?, ?)`,
+      [conversationId, ownerA.tenantId, storeId, now, now, now],
+    );
+    const tools = app.get<ConversationTools>(CONVERSATION_TOOLS);
+    const context = {
+      tenantId: ownerA.tenantId,
+      storeId,
+      conversationId,
+      contactPhone: '5511999991234',
+    };
+
+    const searched = await tools.execute(context, {
+      id: 'search',
+      name: 'search_catalog',
+      arguments: { query: 'X-Bacon' },
+    });
+    expect(searched).toEqual({
+      ok: true,
+      products: [
+        expect.objectContaining({
+          id: productA,
+          name: 'X-Bacon',
+          priceCents: 2000,
+        }),
+      ],
+    });
+    expect(JSON.stringify(searched)).not.toContain('X-Bacon secreto');
+
+    const preview = await tools.execute(context, {
+      id: 'preview',
+      name: 'preview_order',
+      arguments: {
+        items: [
+          { productId: productA, quantity: 2, optionIds: [], notes: null },
+        ],
+        fulfillment: 'PICKUP',
+        phone: '5511000000000',
+        name: 'Ana',
+      },
+    });
+    expect(preview).toEqual(
+      expect.objectContaining({
+        ok: true,
+        subtotalCents: 4000,
+        deliveryFeeCents: 0,
+        totalCents: 4000,
+        previewToken: expect.any(String),
+      }),
+    );
+    const persisted: Array<{ payload: string | object }> = await dataSource.query(
+      `SELECT payload FROM order_previews
+        WHERE tenant_id = ? AND conversation_id = ? AND invalidated_at IS NULL`,
+      [ownerA.tenantId, conversationId],
+    );
+    expect(persisted).toHaveLength(1);
+    expect(JSON.stringify(persisted[0]?.payload)).toContain('5511999991234');
+    expect(JSON.stringify(persisted[0]?.payload)).not.toContain('5511000000000');
+
+    const blocked = await tools.execute(context, {
+      id: 'unavailable',
+      name: 'preview_order',
+      arguments: {
+        items: [
+          { productId: unavailable, quantity: 1, optionIds: [], notes: null },
+        ],
+        fulfillment: 'PICKUP',
+        phone: '5511999991234',
+        name: 'Ana',
+      },
+    });
+    expect(blocked).toEqual(
+      expect.objectContaining({
+        ok: false,
+        error: expect.objectContaining({ code: 'PRODUCT_UNAVAILABLE' }),
+      }),
+    );
+
+    const outside = await tools.execute(context, {
+      id: 'outside',
+      name: 'preview_order',
+      arguments: {
+        items: [
+          { productId: productA, quantity: 1, optionIds: [], notes: null },
+        ],
+        fulfillment: 'DELIVERY',
+        address: {
+          line: 'Rua Longe',
+          number: '900',
+          district: 'Centro',
+          city: 'Sao Paulo',
+          state: 'SP',
+          postalCode: '99999999',
+        },
+        phone: '5511999991234',
+        name: 'Ana',
+      },
+    });
+    expect(outside).toEqual(
+      expect.objectContaining({
+        ok: false,
+        error: expect.objectContaining({ code: 'OUT_OF_AREA' }),
+      }),
+    );
+    const previews: Array<{ total: number | string }> = await dataSource.query(
+      `SELECT COUNT(*) AS total FROM order_previews
+        WHERE tenant_id = ? AND conversation_id = ?`,
+      [ownerA.tenantId, conversationId],
+    );
+    expect(Number(previews[0]?.total)).toBe(1);
+
+    const orders = app.get<ConversationOrders>(CONVERSATION_ORDERS);
+    const confirmed = await orders.confirm({
+      ...context,
+      contactName: 'Ana',
+    });
+    expect(confirmed).toEqual(
+      expect.objectContaining({
+        outcome: 'CREATED',
+        orderNumber: expect.any(Number),
+        trackingPath: expect.stringMatching(/^\/pedido\//),
+      }),
+    );
+    const created: Array<{
+      id: string;
+      source: string;
+      status: string;
+      total_cents: number | string;
+      customer_phone: string;
+    }> = await dataSource.query(
+      `SELECT id, source, status, total_cents, customer_phone
+         FROM orders
+        WHERE tenant_id = ? AND store_id = ? AND customer_phone = ?`,
+      [ownerA.tenantId, storeId, '5511999991234'],
+    );
+    expect(created).toHaveLength(1);
+    expect(created[0]).toEqual(
+      expect.objectContaining({
+        source: 'WHATSAPP',
+        status: 'NEW',
+        total_cents: 4000,
+        customer_phone: '5511999991234',
+      }),
+    );
+    const items: Array<{
+      quantity: number | string;
+      unit_price_cents: number | string;
+    }> = await dataSource.query(
+      `SELECT quantity, unit_price_cents
+         FROM order_items
+        WHERE tenant_id = ? AND order_id = ?`,
+      [ownerA.tenantId, created[0]?.id],
+    );
+    expect(items).toEqual([{ quantity: 2, unit_price_cents: 2000 }]);
+    const linked: Array<{ linked_order_id: string; mode: string }> =
+      await dataSource.query(
+        `SELECT linked_order_id, mode
+           FROM conversations
+          WHERE tenant_id = ? AND store_id = ? AND id = ?`,
+        [ownerA.tenantId, storeId, conversationId],
+      );
+    expect(linked).toEqual([
+      { linked_order_id: created[0]?.id, mode: 'HUMAN' },
+    ]);
+
+    const changedConversationId = randomUUID();
+    await dataSource.query(
+      `INSERT INTO conversations (
+         id, tenant_id, store_id, customer_id, contact_phone, contact_name,
+         mode, linked_order_id, last_message_at, created_at, updated_at
+       ) VALUES (?, ?, ?, NULL, '5511999995678', 'Bia', 'BOT', NULL, ?, ?, ?)`,
+      [changedConversationId, ownerA.tenantId, storeId, now, now, now],
+    );
+    const changedContext = {
+      ...context,
+      conversationId: changedConversationId,
+      contactPhone: '5511999995678',
+    };
+    await tools.execute(changedContext, {
+      id: 'changed-preview',
+      name: 'preview_order',
+      arguments: {
+        items: [
+          { productId: productA, quantity: 2, optionIds: [], notes: null },
+        ],
+        fulfillment: 'PICKUP',
+        phone: '5511999995678',
+        name: 'Bia',
+      },
+    });
+    await dataSource.query(
+      `UPDATE products SET price_cents = 2500
+        WHERE tenant_id = ? AND store_id = ? AND id = ?`,
+      [ownerA.tenantId, storeId, productA],
+    );
+    const changed = await orders.confirm({
+      ...changedContext,
+      contactName: 'Bia',
+    });
+    expect(changed).toEqual(
+      expect.objectContaining({
+        outcome: 'PRICE_CHANGED',
+        preview: expect.objectContaining({ totalCents: 5000 }),
+      }),
+    );
+    const changedOrders: Array<{ total: number | string }> =
+      await dataSource.query(
+        `SELECT COUNT(*) AS total FROM orders
+          WHERE tenant_id = ? AND customer_phone = '5511999995678'`,
+        [ownerA.tenantId],
+      );
+    expect(Number(changedOrders[0]?.total)).toBe(0);
+  });
+
   function postWebhook(raw: string, signature: string) {
     return request(app.getHttpServer())
       .post('/api/v1/webhooks/whatsapp')
@@ -359,6 +708,46 @@ describe('whatsapp conversations', () => {
         accessToken,
       })
       .expect(200);
+  }
+
+  async function openStore(token: string): Promise<void> {
+    await request(app.getHttpServer())
+      .put('/api/v1/admin/store/hours')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        hours: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
+          weekday,
+          opensAt: '00:00:00',
+          closesAt: '23:59:59',
+          closed: false,
+        })),
+      })
+      .expect(200);
+  }
+
+  async function createProduct(
+    token: string,
+    name: string,
+    priceCents: number,
+    available: boolean,
+  ): Promise<string> {
+    const category = await request(app.getHttpServer())
+      .post('/api/v1/admin/categories')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: `Lanches ${randomBytes(3).toString('hex')}` })
+      .expect(201);
+    const product = await request(app.getHttpServer())
+      .post('/api/v1/admin/products')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        categoryId: category.body.id,
+        name,
+        priceCents,
+        active: true,
+        available,
+      })
+      .expect(201);
+    return product.body.id as string;
   }
 
   async function seedCustomerAndOrder(tenantId: string): Promise<{

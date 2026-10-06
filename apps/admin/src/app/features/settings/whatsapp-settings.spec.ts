@@ -15,6 +15,7 @@ describe('WhatsAppSettingsSection', () => {
     flushConnection(http, { error: { code: 'WHATSAPP_CONNECTION_NOT_FOUND' } }, 404);
     flushTemplates(http, []);
     flushSends(http, []);
+    flushAi(http);
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -66,6 +67,7 @@ describe('WhatsAppSettingsSection', () => {
     });
     flushTemplates(http, []);
     flushSends(http, []);
+    flushAi(http);
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -115,6 +117,7 @@ describe('WhatsAppSettingsSection', () => {
       },
     ]);
     flushSends(http, []);
+    flushAi(http);
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -125,9 +128,9 @@ describe('WhatsAppSettingsSection', () => {
     );
     expect(fixture.nativeElement.textContent).not.toContain('5511999991234');
 
-    const checkbox = fixture.nativeElement.querySelector(
-      'input[type="checkbox"]',
-    ) as HTMLInputElement;
+    const checkbox = [...fixture.nativeElement.querySelectorAll('label')].find(
+      (item: HTMLLabelElement) => item.textContent?.includes('Pedido aceito'),
+    )?.querySelector('input') as HTMLInputElement;
     checkbox.checked = false;
     checkbox.dispatchEvent(new Event('change'));
     fixture.detectChanges();
@@ -166,6 +169,7 @@ describe('WhatsAppSettingsSection', () => {
         body: 'https://loja.localhost/pedido/secret-token',
       },
     ]);
+    flushAi(http);
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -178,6 +182,40 @@ describe('WhatsAppSettingsSection', () => {
     expect(time.dateTime).toBe('2026-10-05T15:04:00.000Z');
     expect(text).not.toContain('secret-token');
     expect(text).not.toContain('/pedido/');
+    http.verify();
+  });
+
+  it('keeps AI off by default and saves both AI switches', async () => {
+    const fixture = create();
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    flushConnection(http, { error: { code: 'WHATSAPP_CONNECTION_NOT_FOUND' } }, 404);
+    flushTemplates(http, []);
+    flushSends(http, []);
+    flushAi(http);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      'A IA não define preço nem fecha pedido sozinha',
+    );
+    const enabled = checkboxFor(fixture, 'IA habilitada');
+    expect(enabled.checked).toBe(false);
+    enabled.checked = true;
+    enabled.dispatchEvent(new Event('change'));
+    const saved = http.expectOne(
+      (candidate) =>
+        candidate.method === 'PUT' &&
+        candidate.url.includes('/api/v1/admin/whatsapp/ai'),
+    );
+    expect(saved.request.body).toEqual({
+      aiEnabled: true,
+      aiAutoReply: false,
+    });
+    saved.flush({ aiEnabled: true, aiAutoReply: false });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(checkboxFor(fixture, 'Resposta automática').disabled).toBe(false);
     http.verify();
   });
 });
@@ -216,6 +254,19 @@ function flushTemplates(http: HttpTestingController, data: unknown[]): void {
     .flush({ data });
 }
 
+function flushAi(
+  http: HttpTestingController,
+  settings = { aiEnabled: false, aiAutoReply: false },
+): void {
+  http
+    .expectOne(
+      (candidate) =>
+        candidate.method === 'GET' &&
+        candidate.url.includes('/api/v1/admin/whatsapp/ai'),
+    )
+    .flush(settings);
+}
+
 function create() {
   TestBed.configureTestingModule({
     imports: [WhatsAppSettingsSection],
@@ -250,4 +301,18 @@ function click(fixture: ReturnType<typeof create>, label: string): void {
   }
   button.click();
   fixture.detectChanges();
+}
+
+function checkboxFor(
+  fixture: ReturnType<typeof create>,
+  label: string,
+): HTMLInputElement {
+  const field = [...fixture.nativeElement.querySelectorAll('label')].find(
+    (item: HTMLLabelElement) => item.textContent?.includes(label),
+  ) as HTMLLabelElement | undefined;
+  const input = field?.querySelector('input');
+  if (input === null || input === undefined) {
+    throw new Error(`missing ${label}`);
+  }
+  return input;
 }

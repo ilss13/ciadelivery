@@ -318,6 +318,6 @@ import { PublicOrdersController } from './presentation/public-orders.controller'
       inject: [OUTBOX_STORE],
     },
   ],
-  exports: [DOMAIN_EVENTS],
+  exports: [DOMAIN_EVENTS, CreatePublicOrder],
 })
 export class OrdersModule {}

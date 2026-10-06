@@ -130,6 +130,15 @@ describe('OrdersPage', () => {
     expect(column(fixture.nativeElement, 'new').textContent).toContain('Teste');
   });
 
+  it('shows the WhatsApp origin badge', async () => {
+    feed.loadResult = [card({ source: 'WHATSAPP' })];
+    const fixture = await create(feed);
+
+    expect(column(fixture.nativeElement, 'new').textContent).toContain(
+      'WhatsApp',
+    );
+  });
+
   it('lets an operator assign a ready delivery and finish one on the route', async () => {
     feed.couriers = [{ id: 'courier-1', name: 'Lia' }];
     feed.loadResult = [

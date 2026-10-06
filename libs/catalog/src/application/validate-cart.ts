@@ -4,7 +4,7 @@ import {
   isStoreOpen,
 } from '@ciadelivery/branding';
 import { DatabaseReady } from '@ciadelivery/shared';
-import { CurrentStore } from '@ciadelivery/stores';
+import { CurrentStore, StoreRecord } from '@ciadelivery/stores';
 import {
   CartProductSnapshot,
   CartRequestItem,
@@ -25,6 +25,13 @@ export class ValidatePublicCart {
 
   async execute(items: readonly CartRequestItem[]): Promise<CartValidation> {
     const store = await requirePublicStore(this.stores);
+    return this.executeForStore(store, items);
+  }
+
+  async executeForStore(
+    store: StoreRecord,
+    items: readonly CartRequestItem[],
+  ): Promise<CartValidation> {
     const scope = { tenantId: store.tenantId, storeId: store.id };
     const dataSource = await this.database.ensure();
     const rows = await dataSource.manager.find(BusinessHourEntity, {

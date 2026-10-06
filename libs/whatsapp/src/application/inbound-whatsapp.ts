@@ -10,6 +10,7 @@ import {
   Conversations,
 } from '../domain/conversations.port';
 import { ParsedWebhookMessage } from '../domain/whatsapp-provider';
+import { AutomatedConversation } from './automated-conversation';
 
 export class InboundWhatsApp {
   private readonly logger = new JsonLogger();
@@ -17,6 +18,7 @@ export class InboundWhatsApp {
   constructor(
     private readonly conversations: Conversations,
     private readonly events: ConversationEvents,
+    private readonly automated: AutomatedConversation,
   ) {}
 
   async execute(
@@ -53,6 +55,21 @@ export class InboundWhatsApp {
       body: stored.body,
       createdAt: stored.createdAt,
     });
+    try {
+      await this.automated.execute({
+        tenantId: connection.tenantId,
+        storeId: stored.storeId,
+        conversationId: stored.conversationId,
+        body: stored.body,
+        receivedAt: stored.createdAt,
+      });
+    } catch {
+      this.logger.error(
+        'Automated conversation processing failed',
+        undefined,
+        'InboundWhatsApp',
+      );
+    }
     this.logger.log(
       `WhatsApp inbound stored ${stored.conversationId}`,
       'InboundWhatsApp',

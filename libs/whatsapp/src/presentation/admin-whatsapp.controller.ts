@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -31,6 +32,8 @@ import { AdminConversations } from '../application/admin-conversations';
 import { AdminWhatsApp } from '../application/admin-whatsapp';
 import {
   ConnectWhatsAppDto,
+  AiSettingsResponse,
+  ConversationDetailResponse,
   ConversationIdParam,
   ConversationListItemResponse,
   ConversationListResponse,
@@ -38,6 +41,8 @@ import {
   ConversationPageQuery,
   ConversationThreadResponse,
   SendConversationMessageDto,
+  UpdateAiSettingsDto,
+  UpdateConversationModeDto,
   UpdateWhatsAppTemplateDto,
   WhatsAppConnectionResponse,
   WhatsAppSendListResponse,
@@ -135,6 +140,27 @@ export class AdminWhatsAppController {
     return this.whatsapp.disconnect(actorFrom(request));
   }
 
+  @Get('ai')
+  @RequirePermissions('store.configure')
+  @ApiOperation({ summary: 'Read store AI settings' })
+  @ApiOkResponse({ type: AiSettingsResponse })
+  getAiSettings(
+    @Req() request: { actor?: RequestActor },
+  ): Promise<AiSettingsResponse> {
+    return this.conversations.getAiSettings(actorFrom(request));
+  }
+
+  @Put('ai')
+  @RequirePermissions('store.configure')
+  @ApiOperation({ summary: 'Enable or disable store AI replies' })
+  @ApiOkResponse({ type: AiSettingsResponse })
+  updateAiSettings(
+    @Req() request: { actor?: RequestActor },
+    @Body() body: UpdateAiSettingsDto,
+  ): Promise<AiSettingsResponse> {
+    return this.conversations.updateAiSettings(actorFrom(request), body);
+  }
+
   @Get('conversations')
   @ApiOperation({
     summary: 'List WhatsApp conversations',
@@ -193,6 +219,18 @@ export class AdminWhatsAppController {
     @Param() param: ConversationIdParam,
   ): Promise<ConversationListItemResponse> {
     return this.conversations.close(actorFrom(request), param.id);
+  }
+
+  @Post('conversations/:id/mode')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Change the WhatsApp conversation mode' })
+  @ApiOkResponse({ type: ConversationDetailResponse })
+  setConversationMode(
+    @Req() request: { actor?: RequestActor },
+    @Param() param: ConversationIdParam,
+    @Body() body: UpdateConversationModeDto,
+  ): Promise<ConversationDetailResponse> {
+    return this.conversations.setMode(actorFrom(request), param.id, body.mode);
   }
 }
 

@@ -179,7 +179,7 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnModuleDestroy 
       return;
     }
     for (const room of message.rooms) {
-      if (message.event !== 'conversation.message_received') {
+      if (!message.event.startsWith('conversation.')) {
         namespace.to(room).emit(message.event, message.payload);
         continue;
       }

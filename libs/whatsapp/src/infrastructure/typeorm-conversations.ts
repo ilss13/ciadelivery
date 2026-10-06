@@ -201,6 +201,49 @@ export class TypeOrmConversations implements Conversations {
     };
   }
 
+  async recentMessages(
+    tenantId: string,
+    conversationId: string,
+    limit: number,
+  ): Promise<ConversationMessageRecord[]> {
+    const source = await this.database.ensure();
+    const rows: MessageRow[] = await source.query(
+      `SELECT id, direction, author, body, template_key AS templateKey,
+              status, created_at AS createdAt
+         FROM whatsapp_messages
+        WHERE tenant_id = ? AND conversation_id = ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT ?`,
+      [tenantId, conversationId, Math.min(Math.max(Math.trunc(limit), 1), 20)],
+    );
+    return rows.reverse().map((row) => ({
+      id: row.id,
+      direction: row.direction,
+      author: row.author,
+      body: row.body,
+      templateKey: row.templateKey,
+      status: row.status,
+      createdAt: asDate(row.createdAt),
+    }));
+  }
+
+  async setMode(
+    tenantId: string,
+    storeId: string,
+    id: string,
+    mode: ConversationMode,
+    at: Date,
+  ): Promise<boolean> {
+    const source = await this.database.ensure();
+    const result = await source.query(
+      `UPDATE conversations
+          SET mode = ?, updated_at = ?
+        WHERE tenant_id = ? AND store_id = ? AND id = ?`,
+      [mode, at, tenantId, storeId, id],
+    );
+    return Number((result as { affectedRows?: number }).affectedRows ?? 0) === 1;
+  }
+
   async touch(tenantId: string, id: string, at: Date): Promise<void> {
     const source = await this.database.ensure();
     await source.query(

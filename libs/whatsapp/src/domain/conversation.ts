@@ -2,7 +2,7 @@ export const CONVERSATION_MODES = ['BOT', 'HUMAN', 'PAUSED', 'CLOSED'] as const;
 
 export type ConversationMode = (typeof CONVERSATION_MODES)[number];
 
-export const MESSAGE_AUTHORS = ['CUSTOMER', 'USER', 'SYSTEM'] as const;
+export const MESSAGE_AUTHORS = ['CUSTOMER', 'USER', 'BOT', 'SYSTEM'] as const;
 
 export type MessageAuthor = (typeof MESSAGE_AUTHORS)[number];
 
@@ -49,5 +49,5 @@ export function contactLabel(name: string | null | undefined): string | null {
 }
 
 export function inboundBody(body: string): string {
-  return body.replace(/\u0000/g, '').slice(0, 4000);
+  return body.split('\u0000').join('').slice(0, 4000);
 }

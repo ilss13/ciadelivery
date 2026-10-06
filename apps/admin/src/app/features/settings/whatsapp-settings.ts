@@ -51,6 +51,11 @@ interface WhatsAppConnection {
   credentialsHint: string | null;
 }
 
+interface AiSettings {
+  aiEnabled: boolean;
+  aiAutoReply: boolean;
+}
+
 const STATUS_LABELS: Record<WhatsAppConnection['status'], string> = {
   PENDING: 'Pendente',
   CONNECTED: 'Conectado',
@@ -84,6 +89,10 @@ export class WhatsAppSettingsSection implements OnInit {
   readonly accessToken = signal('');
   readonly templates = signal<WhatsAppTemplate[]>([]);
   readonly sends = signal<SystemSend[]>([]);
+  readonly aiSettings = signal<AiSettings>({
+    aiEnabled: false,
+    aiAutoReply: false,
+  });
   private readonly dirty = signal(false);
 
   readonly statusLabel = STATUS_LABELS;
@@ -217,6 +226,37 @@ export class WhatsAppSettingsSection implements OnInit {
       });
   }
 
+  toggleAi(key: keyof AiSettings, event: Event): void {
+    if (this.saving()) {
+      return;
+    }
+    const checked = (event.target as HTMLInputElement).checked;
+    const current = this.aiSettings();
+    const next: AiSettings = {
+      ...current,
+      [key]: checked,
+    };
+    if (!next.aiEnabled) {
+      next.aiAutoReply = false;
+    }
+    this.saving.set(true);
+    this.error.set('');
+    this.http
+      .put<AiSettings>(apiUrl('/api/v1/admin/whatsapp/ai'), next)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (settings) => {
+          this.aiSettings.set(settings);
+          this.saving.set(false);
+        },
+        error: () => {
+          this.saving.set(false);
+          this.error.set('Não foi possível salvar as configurações de IA.');
+          this.loadAi();
+        },
+      });
+  }
+
   errorText(message: string): string {
     return whatsappCodeMessage(message);
   }
@@ -258,6 +298,7 @@ export class WhatsAppSettingsSection implements OnInit {
       });
     this.loadTemplates();
     this.loadSends();
+    this.loadAi();
   }
 
   private loadTemplates(): void {
@@ -279,6 +320,17 @@ export class WhatsAppSettingsSection implements OnInit {
       .subscribe({
         next: (response) => this.sends.set(response.data.slice(0, 50)),
         error: () => this.sends.set([]),
+      });
+  }
+
+  private loadAi(): void {
+    this.http
+      .get<AiSettings>(apiUrl('/api/v1/admin/whatsapp/ai'))
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (settings) => this.aiSettings.set(settings),
+        error: () =>
+          this.aiSettings.set({ aiEnabled: false, aiAutoReply: false }),
       });
   }
 

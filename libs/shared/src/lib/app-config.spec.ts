@@ -66,6 +66,9 @@ describe('loadAppConfig', () => {
       metaAppSecret: '',
       metaWebhookVerifyToken: '',
       whatsappAllowSessionMessages: false,
+      llmDriver: 'none',
+      llmApiUrl: '',
+      aiConfidenceMin: 0.6,
       metricsToken: null,
     });
   });
@@ -253,6 +256,29 @@ describe('loadAppConfig', () => {
     expect(() =>
       loadAppConfig({ ...validEnv, WHATSAPP_DRIVER: 'web' }),
     ).toThrow('Invalid WHATSAPP_DRIVER');
+  });
+
+  it('requires a URL for the HTTP LLM driver and validates confidence', () => {
+    expect(() =>
+      loadAppConfig({ ...validEnv, LLM_DRIVER: 'http' }),
+    ).toThrow('LLM_API_URL');
+    expect(
+      loadAppConfig({
+        ...validEnv,
+        LLM_DRIVER: 'http',
+        LLM_API_URL: 'https://llm.internal/complete',
+        AI_CONFIDENCE_MIN: '0.75',
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        llmDriver: 'http',
+        llmApiUrl: 'https://llm.internal/complete',
+        aiConfidenceMin: 0.75,
+      }),
+    );
+    expect(() =>
+      loadAppConfig({ ...validEnv, AI_CONFIDENCE_MIN: '1.1' }),
+    ).toThrow('AI_CONFIDENCE_MIN');
   });
 
   it('refuses a pool size that is not a positive integer', () => {

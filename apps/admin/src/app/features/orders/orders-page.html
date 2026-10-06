@@ -58,6 +58,9 @@
               @if (isTest(order)) {
               <span class="badge">Teste</span>
               }
+              @if (order.source === 'WHATSAPP') {
+              <span class="badge">{{ source(order) }}</span>
+              }
             </strong>
             <span>{{ age(order.createdAt) }}</span>
             <span>{{ format(order.totalCents) }}</span>

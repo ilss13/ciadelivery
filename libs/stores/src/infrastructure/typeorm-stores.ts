@@ -156,6 +156,17 @@ export class TypeOrmStores implements Stores {
     return row === null ? null : toRecord(row);
   }
 
+  async findByScope(
+    tenantId: string,
+    storeId: string,
+  ): Promise<StoreRecord | null> {
+    const dataSource = await this.database.ensure();
+    const row = await dataSource.manager.findOne(StoreEntity, {
+      where: { id: storeId, tenantId },
+    });
+    return row === null ? null : toRecord(row);
+  }
+
   async updateForCurrentTenant(
     patch: StoreProfileUpdate,
     coordinates: StoreCoordinates,

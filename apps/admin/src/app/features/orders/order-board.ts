@@ -14,6 +14,10 @@ export function isTestOrder(order: OrderCard): boolean {
   return order.source === 'TEST' || order.notes === 'TEST_ORDER';
 }
 
+export function orderSourceLabel(source: string): string {
+  return source === 'WHATSAPP' ? 'WhatsApp' : source;
+}
+
 export interface OrderRealtimeEvent {
   event: string;
   orderId: string;

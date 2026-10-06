@@ -25,6 +25,7 @@ import {
   firstName,
   isTestOrder,
   mergeBoard,
+  orderSourceLabel,
   placeCard,
 } from './order-board';
 import {
@@ -213,6 +214,10 @@ export class OrdersPage implements OnInit {
 
   isTest(order: OrderCard): boolean {
     return isTestOrder(order);
+  }
+
+  source(order: OrderCard): string {
+    return orderSourceLabel(order.source);
   }
 
   canPlaceTest(): boolean {

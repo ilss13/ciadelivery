@@ -49,6 +49,7 @@ export interface StoreCoordinates {
 
 export interface CurrentStore {
   findForCurrentTenant(): Promise<StoreRecord | null>;
+  findByScope(tenantId: string, storeId: string): Promise<StoreRecord | null>;
   updateForCurrentTenant(
     patch: StoreProfileUpdate,
     coordinates: StoreCoordinates,

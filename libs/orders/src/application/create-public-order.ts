@@ -8,7 +8,7 @@ import {
 } from '@ciadelivery/customers';
 import { DeliveryPolicies } from '@ciadelivery/delivery';
 import { DomainException, JsonLogger, observeCounter } from '@ciadelivery/shared';
-import { CurrentStore } from '@ciadelivery/stores';
+import { CurrentStore, StoreRecord } from '@ciadelivery/stores';
 import { TransactionContext, UnitOfWork } from '@ciadelivery/tenancy/domain';
 import {
   DeliveryQuotePort,
@@ -19,6 +19,7 @@ import {
   CreatedOrder,
   OrderAddress,
   OrderAddressDraft,
+  OrderSource,
   trackingPath,
 } from '../domain/order';
 import { DomainEventPublisher } from '../domain/domain-event';
@@ -60,6 +61,11 @@ export interface CreateOrderMeta {
   userAgent: string;
 }
 
+export interface CreateOrderContext {
+  source: OrderSource;
+  expectedTotalCents?: number;
+}
+
 export class CreatePublicOrder {
   private readonly logger = new JsonLogger();
 
@@ -80,11 +86,24 @@ export class CreatePublicOrder {
     meta: CreateOrderMeta,
   ): Promise<CreatedOrder> {
     const store = await requireStore(this.stores);
+    return this.executeForStore(input, meta, store, { source: 'STOREFRONT' });
+  }
+
+  async executeForStore(
+    input: CreateOrderInput,
+    meta: CreateOrderMeta,
+    store: StoreRecord,
+    context: CreateOrderContext,
+  ): Promise<CreatedOrder> {
     await this.rateLimit.consume(store.tenantId, clip(meta.ip, 64));
     const idempotencyKey = readIdempotencyKey(meta.idempotencyKey);
     const phone = normalizeBrazilPhone(input.customer.phone);
     const name = input.customer.name.trim();
-    const requestHash = hashRequest({ ...input, customer: { name, phone } });
+    const requestHash = hashRequest({
+      ...input,
+      customer: { name, phone },
+      source: context.source,
+    });
     const scope = { tenantId: store.tenantId, storeId: store.id };
 
     let createdNew = false;
@@ -160,7 +179,8 @@ export class CreatePublicOrder {
         tx,
       );
 
-      const cart = await this.carts.execute(
+      const cart = await this.carts.executeForStore(
+        store,
         input.items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -191,6 +211,18 @@ export class CreatePublicOrder {
         address: addressInput,
       });
       assertQuote(quote);
+      const totalCents = cart.subtotalCents + quote.feeCents;
+      if (
+        context.expectedTotalCents !== undefined &&
+        totalCents !== context.expectedTotalCents
+      ) {
+        throw new DomainException(
+          'ORDER_TOTAL_CHANGED',
+          'The order total changed after the preview',
+          409,
+          { totalCents },
+        );
+      }
       const address = locateAddress(addressInput, quote);
 
       const orderId = randomUUID();
@@ -203,7 +235,7 @@ export class CreatePublicOrder {
         orderId,
         orderNumber,
         status: 'NEW',
-        totalCents: cart.subtotalCents + quote.feeCents,
+        totalCents,
         trackingToken,
         trackingPath: trackingPath(trackingToken),
       };
@@ -214,7 +246,7 @@ export class CreatePublicOrder {
           storeId: scope.storeId,
           customerId: customer.id,
           orderNumber,
-          source: 'STOREFRONT',
+          source: context.source,
           fulfillment: input.fulfillment,
           paymentMethodCode: method.code,
           paymentLabel: method.label,
@@ -420,7 +452,7 @@ function readIdempotencyKey(value: string | undefined): string {
   return key;
 }
 
-function hashRequest(input: CreateOrderInput): string {
+function hashRequest(input: unknown): string {
   return createHash('sha256').update(stableStringify(input)).digest('hex');
 }
 

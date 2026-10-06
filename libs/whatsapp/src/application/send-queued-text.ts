@@ -29,7 +29,7 @@ export class SendQueuedText {
     if (
       message === null ||
       message.direction !== 'OUT' ||
-      message.author !== 'USER' ||
+      (message.author !== 'USER' && message.author !== 'BOT') ||
       TERMINAL.has(message.status)
     ) {
       return;

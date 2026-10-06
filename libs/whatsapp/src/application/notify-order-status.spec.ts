@@ -84,6 +84,14 @@ describe('NotifyOrderStatus', () => {
     expect(harness.inbox.created).toBe(0);
   });
 
+  it('does not duplicate the creation reply for a WhatsApp order', async () => {
+    const harness = createHarness({ ...order, source: 'WHATSAPP' });
+    harness.events.event.type = 'order.created';
+    await harness.notify.execute('event-1', 1);
+    expect(harness.messages.rows).toEqual([]);
+    expect((harness.provider as LoggingWhatsAppProvider).outbox).toEqual([]);
+  });
+
   it('does not write a message for another tenant', async () => {
     const harness = createHarness(order);
     harness.events.event = {
@@ -390,6 +398,14 @@ class MemoryInbox implements Conversations {
 
   listMessages(): Promise<{ data: []; total: number }> {
     return Promise.resolve({ data: [], total: 0 });
+  }
+
+  recentMessages(): Promise<[]> {
+    return Promise.resolve([]);
+  }
+
+  setMode(): Promise<boolean> {
+    return Promise.resolve(false);
   }
 
   touch(): Promise<void> {

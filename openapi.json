@@ -4001,6 +4001,68 @@
         ]
       }
     },
+    "/api/v1/admin/whatsapp/ai": {
+      "get": {
+        "operationId": "AdminWhatsAppController_getAiSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiSettingsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read store AI settings",
+        "tags": [
+          "admin-whatsapp"
+        ]
+      },
+      "put": {
+        "operationId": "AdminWhatsAppController_updateAiSettings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAiSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiSettingsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Enable or disable store AI replies",
+        "tags": [
+          "admin-whatsapp"
+        ]
+      }
+    },
     "/api/v1/admin/whatsapp/conversations": {
       "get": {
         "description": "Newest activity first. The phone on the card is masked. The full number is only on the thread.",
@@ -4152,6 +4214,43 @@
           }
         ],
         "summary": "Close a WhatsApp conversation",
+        "tags": [
+          "admin-whatsapp"
+        ]
+      }
+    },
+    "/api/v1/admin/whatsapp/conversations/{id}/mode": {
+      "post": {
+        "operationId": "AdminWhatsAppController_setConversationMode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConversationModeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change the WhatsApp conversation mode",
         "tags": [
           "admin-whatsapp"
         ]
@@ -8690,6 +8789,36 @@
           "enabled"
         ]
       },
+      "AiSettingsResponse": {
+        "type": "object",
+        "properties": {
+          "aiEnabled": {
+            "type": "boolean"
+          },
+          "aiAutoReply": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "aiEnabled",
+          "aiAutoReply"
+        ]
+      },
+      "UpdateAiSettingsDto": {
+        "type": "object",
+        "properties": {
+          "aiEnabled": {
+            "type": "boolean"
+          },
+          "aiAutoReply": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "aiEnabled",
+          "aiAutoReply"
+        ]
+      },
       "ConversationListItemResponse": {
         "type": "object",
         "properties": {
@@ -8805,6 +8934,7 @@
             "enum": [
               "CUSTOMER",
               "USER",
+              "BOT",
               "SYSTEM"
             ]
           },
@@ -8864,6 +8994,22 @@
         },
         "required": [
           "body"
+        ]
+      },
+      "UpdateConversationModeDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "HUMAN",
+              "BOT",
+              "PAUSED"
+            ]
+          }
+        },
+        "required": [
+          "mode"
         ]
       }
     }

@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsInt,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
@@ -174,6 +175,30 @@ export class SendConversationMessageDto {
   body!: string;
 }
 
+export class UpdateConversationModeDto {
+  @ApiProperty({ enum: ['HUMAN', 'BOT', 'PAUSED'] })
+  @IsIn(['HUMAN', 'BOT', 'PAUSED'])
+  mode!: 'HUMAN' | 'BOT' | 'PAUSED';
+}
+
+export class UpdateAiSettingsDto {
+  @ApiProperty()
+  @IsBoolean()
+  aiEnabled!: boolean;
+
+  @ApiProperty()
+  @IsBoolean()
+  aiAutoReply!: boolean;
+}
+
+export class AiSettingsResponse {
+  @ApiProperty()
+  aiEnabled!: boolean;
+
+  @ApiProperty()
+  aiAutoReply!: boolean;
+}
+
 export class ConversationListItemResponse {
   @ApiProperty()
   id!: string;
@@ -223,8 +248,8 @@ export class ConversationMessageResponse {
   @ApiProperty({ enum: ['IN', 'OUT'] })
   direction!: 'IN' | 'OUT';
 
-  @ApiProperty({ enum: ['CUSTOMER', 'USER', 'SYSTEM'] })
-  author!: 'CUSTOMER' | 'USER' | 'SYSTEM';
+  @ApiProperty({ enum: ['CUSTOMER', 'USER', 'BOT', 'SYSTEM'] })
+  author!: 'CUSTOMER' | 'USER' | 'BOT' | 'SYSTEM';
 
   @ApiProperty()
   body!: string;

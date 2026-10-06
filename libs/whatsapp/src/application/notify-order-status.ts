@@ -79,6 +79,9 @@ export class NotifyOrderStatus {
     if (order.source === 'TEST') {
       return;
     }
+    if (order.source === 'WHATSAPP' && event.type === 'order.created') {
+      return;
+    }
 
     const connection = await this.connections.findConnectedForTenant(event.tenantId);
     if (

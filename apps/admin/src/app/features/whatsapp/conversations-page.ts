@@ -30,6 +30,7 @@ interface ConversationDetail {
   contactPhone: string;
   contactName: string | null;
   mode: string;
+  linkedOrderId: string | null;
 }
 
 interface ListResponse {
@@ -46,6 +47,14 @@ const ERRORS: Record<string, string> = {
   CONVERSATION_CLOSED: 'Esta conversa está encerrada.',
   CONVERSATION_NOT_FOUND: 'Conversa não encontrada.',
   VALIDATION_ERROR: 'Escreva uma mensagem de até 1000 caracteres.',
+  AI_DISABLED: 'Habilite a IA nas configurações antes de passar para o bot.',
+};
+
+const MODE_LABELS: Record<string, string> = {
+  BOT: 'Bot',
+  HUMAN: 'Humano',
+  PAUSED: 'Pausada',
+  CLOSED: 'Encerrada',
 };
 
 @Component({
@@ -65,6 +74,9 @@ export class ConversationsPage implements OnInit {
   readonly draft = signal('');
   readonly sending = signal(false);
   readonly threadError = signal('');
+  readonly modeNotice = signal('');
+  readonly changingMode = signal(false);
+  readonly modeLabel = MODE_LABELS;
 
   ngOnInit(): void {
     this.reload();
@@ -96,6 +108,7 @@ export class ConversationsPage implements OnInit {
 
   open(id: string): void {
     this.threadError.set('');
+    this.modeNotice.set('');
     this.http
       .get<ThreadResponse>(
         apiUrl(`/api/v1/admin/whatsapp/conversations/${id}/messages`),
@@ -118,6 +131,7 @@ export class ConversationsPage implements OnInit {
     this.messages.set([]);
     this.draft.set('');
     this.threadError.set('');
+    this.modeNotice.set('');
   }
 
   onDraft(value: string): void {
@@ -188,6 +202,39 @@ export class ConversationsPage implements OnInit {
       });
   }
 
+  setMode(mode: 'BOT' | 'HUMAN' | 'PAUSED'): void {
+    const conversation = this.selected();
+    if (
+      conversation === null ||
+      conversation.mode === mode ||
+      this.changingMode()
+    ) {
+      return;
+    }
+    this.changingMode.set(true);
+    this.threadError.set('');
+    this.http
+      .post<ConversationDetail>(
+        apiUrl(`/api/v1/admin/whatsapp/conversations/${conversation.id}/mode`),
+        { mode },
+      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.changingMode.set(false);
+          this.applyMode(updated.id, updated.mode);
+          this.modeNotice.set(`Atendimento em modo ${MODE_LABELS[updated.mode] ?? updated.mode}.`);
+        },
+        error: (error: unknown) => {
+          this.changingMode.set(false);
+          const code = readErrorCode(error);
+          this.threadError.set(
+            ERRORS[code] ?? 'Não foi possível alterar o modo da conversa.',
+          );
+        },
+      });
+  }
+
   authorLabel(author: string): string {
     if (author === 'CUSTOMER') {
       return 'Cliente';
@@ -195,10 +242,20 @@ export class ConversationsPage implements OnInit {
     if (author === 'USER') {
       return 'Loja';
     }
+    if (author === 'BOT') {
+      return 'Bot';
+    }
     return 'Sistema';
   }
 
   private onNotice(notice: ConversationNotice): void {
+    if (notice.mode !== undefined) {
+      this.applyMode(notice.conversationId, notice.mode);
+      if (notice.reason !== 'admin' && notice.mode === 'HUMAN') {
+        this.modeNotice.set('A conversa precisa de atendimento humano.');
+      }
+      return;
+    }
     const known = this.conversations().some(
       (item) => item.id === notice.conversationId,
     );
@@ -224,6 +281,15 @@ export class ConversationsPage implements OnInit {
         createdAt: notice.createdAt,
       },
     ]);
+  }
+
+  private applyMode(id: string, mode: string): void {
+    this.selected.update((current) =>
+      current?.id === id ? { ...current, mode } : current,
+    );
+    this.conversations.update((items) =>
+      items.map((item) => (item.id === id ? { ...item, mode } : item)),
+    );
   }
 
   private bump(id: string, lastMessageAt: string): void {

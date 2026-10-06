@@ -63,6 +63,31 @@
     Desconectar
   </button>
   } }
+  <section aria-labelledby="whatsapp-ai">
+    <h2 id="whatsapp-ai">Atendimento com IA</h2>
+    <p class="muted">
+      A IA não define preço nem fecha pedido sozinha. Quando não puder responder
+      com segurança, passa a conversa para uma pessoa.
+    </p>
+    <label class="check">
+      <input
+        type="checkbox"
+        [checked]="aiSettings().aiEnabled"
+        [disabled]="saving()"
+        (change)="toggleAi('aiEnabled', $event)"
+      />
+      IA habilitada
+    </label>
+    <label class="check">
+      <input
+        type="checkbox"
+        [checked]="aiSettings().aiAutoReply"
+        [disabled]="saving() || !aiSettings().aiEnabled"
+        (change)="toggleAi('aiAutoReply', $event)"
+      />
+      Resposta automática
+    </label>
+  </section>
   <div class="templates">
     <p class="muted">Avisos de status do pedido. Desligado: a loja não envia.</p>
     @for (item of templates(); track item.key) {

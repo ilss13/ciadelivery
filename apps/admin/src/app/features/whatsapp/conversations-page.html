@@ -20,6 +20,7 @@
             >
               <strong>{{ conversation.contactName ?? conversation.maskedPhone }}</strong>
               <span class="muted">{{ conversation.maskedPhone }}</span>
+              <span class="muted">Modo: {{ modeLabel[conversation.mode] ?? conversation.mode }}</span>
             </button>
           </li>
         }
@@ -32,6 +33,20 @@
       <button type="button" class="secondary back" (click)="back()">Voltar</button>
       <h2>{{ current.contactName ?? current.contactPhone }}</h2>
       <p class="muted">{{ current.contactPhone }}</p>
+      <p><strong>Modo:</strong> {{ modeLabel[current.mode] ?? current.mode }}</p>
+      @if (current.linkedOrderId) {
+        <p><a [href]="'/pedidos#order-' + current.linkedOrderId">Abrir pedido vinculado</a></p>
+      }
+      @if (current.mode !== 'CLOSED') {
+        <div class="actions" aria-label="Modo da conversa">
+          <button type="button" class="secondary" [disabled]="changingMode() || current.mode === 'HUMAN'" (click)="setMode('HUMAN')">Assumir atendimento</button>
+          <button type="button" class="secondary" [disabled]="changingMode() || current.mode === 'BOT'" (click)="setMode('BOT')">Passar para o bot</button>
+          <button type="button" class="secondary" [disabled]="changingMode() || current.mode === 'PAUSED'" (click)="setMode('PAUSED')">Pausar</button>
+        </div>
+      }
+      @if (modeNotice()) {
+        <p role="status">{{ modeNotice() }}</p>
+      }
       <div class="thread" aria-live="polite">
         @for (message of messages(); track message.id) {
           <article

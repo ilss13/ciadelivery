@@ -189,6 +189,11 @@ describe('basic reports', () => {
     const delivery = await place(owner.tenantSlug, productId, 'DELIVERY');
     const cancelled = await place(owner.tenantSlug, productId, 'PICKUP');
     const foreign = await place(other.tenantSlug, otherProductId, 'PICKUP');
+    await app
+      .get(DataSource)
+      .query(`UPDATE orders SET source = 'WHATSAPP' WHERE id = ?`, [
+        delivery.orderId,
+      ]);
 
     await advance(owner.token, pickup.orderId, [
       'accept',
@@ -246,7 +251,10 @@ describe('basic reports', () => {
       ]),
     );
     expect(overview.body.bySource).toEqual(
-      expect.arrayContaining([{ source: 'STOREFRONT', count: 3 }]),
+      expect.arrayContaining([
+        { source: 'STOREFRONT', count: 2 },
+        { source: 'WHATSAPP', count: 1 },
+      ]),
     );
     expect(overview.body.revenueCents).not.toBe(revenue + foreign.totalCents);
 

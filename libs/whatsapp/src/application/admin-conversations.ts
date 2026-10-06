@@ -6,12 +6,17 @@ import { maskPhone } from '../domain/order-templates';
 import { WhatsAppConnections } from '../domain/connections.port';
 import { ConversationMode, MessageAuthor } from '../domain/conversation';
 import {
+  ConversationEvents,
   ConversationRecord,
   Conversations,
   TextDispatch,
 } from '../domain/conversations.port';
 import { OrderTemplateKey } from '../domain/order-templates';
 import { OutboundMessages } from '../domain/outbound-messages.port';
+import {
+  AiConfigurations,
+  AiStoreSettings,
+} from '../domain/ai-turns.port';
 
 export interface ConversationListItem {
   id: string;
@@ -61,6 +66,8 @@ export class AdminConversations {
     private readonly outbound: OutboundMessages,
     private readonly dispatch: TextDispatch,
     private readonly stores: CurrentStore,
+    private readonly ai: AiConfigurations,
+    private readonly events: ConversationEvents,
   ) {}
 
   async list(
@@ -226,6 +233,88 @@ export class AdminConversations {
       linkedOrderId: conversation.linkedOrderId,
       lastMessageAt: conversation.lastMessageAt.toISOString(),
     };
+  }
+
+  async getAiSettings(actor: RequestActor): Promise<AiStoreSettings> {
+    const store = await this.requireStore(actor);
+    const settings = await this.ai.find(store.tenantId, store.id);
+    if (settings === null) {
+      throw new DomainException('STORE_NOT_FOUND', 'The store was not found', 404);
+    }
+    return settings;
+  }
+
+  async updateAiSettings(
+    actor: RequestActor,
+    input: AiStoreSettings,
+  ): Promise<AiStoreSettings> {
+    const store = await this.requireStore(actor);
+    const settings = {
+      aiEnabled: input.aiEnabled,
+      aiAutoReply: input.aiEnabled && input.aiAutoReply,
+    };
+    const updated = await this.ai.update(store.tenantId, store.id, settings);
+    if (updated === null) {
+      throw new DomainException('STORE_NOT_FOUND', 'The store was not found', 404);
+    }
+    return updated;
+  }
+
+  async setMode(
+    actor: RequestActor,
+    conversationId: string,
+    mode: Exclude<ConversationMode, 'CLOSED'>,
+  ): Promise<ConversationThread['conversation']> {
+    const store = await this.requireStore(actor);
+    const conversation = await this.conversations.findInStore(
+      store.tenantId,
+      store.id,
+      conversationId,
+    );
+    if (conversation === null) {
+      throw notFound();
+    }
+    if (conversation.mode === 'CLOSED') {
+      throw new DomainException(
+        'CONVERSATION_CLOSED',
+        'The conversation is closed',
+        409,
+      );
+    }
+    if (mode === 'BOT') {
+      const settings = await this.ai.find(store.tenantId, store.id);
+      if (settings === null || !settings.aiEnabled) {
+        throw new DomainException('AI_DISABLED', 'AI is disabled for the store', 409);
+      }
+      const connection = await this.connections.findConnectedForTenant(store.tenantId);
+      if (connection === null || connection.storeId !== store.id) {
+        throw new DomainException(
+          'WHATSAPP_NOT_CONNECTED',
+          'The WhatsApp number is not connected',
+          409,
+        );
+      }
+    }
+    const at = new Date();
+    const changed = await this.conversations.setMode(
+      store.tenantId,
+      store.id,
+      conversation.id,
+      mode,
+      at,
+    );
+    if (!changed) {
+      throw notFound();
+    }
+    conversation.mode = mode;
+    conversation.updatedAt = at;
+    await this.events.modeChanged({
+      storeId: store.id,
+      conversationId: conversation.id,
+      mode,
+      reason: 'admin',
+    });
+    return toDetail(conversation);
   }
 
   private async requireStore(actor: RequestActor) {

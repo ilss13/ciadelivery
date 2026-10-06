@@ -78,6 +78,18 @@ export interface Conversations {
     page: number,
     pageSize: number,
   ): Promise<{ data: ConversationMessageRecord[]; total: number }>;
+  recentMessages(
+    tenantId: string,
+    conversationId: string,
+    limit: number,
+  ): Promise<ConversationMessageRecord[]>;
+  setMode(
+    tenantId: string,
+    storeId: string,
+    id: string,
+    mode: ConversationMode,
+    at: Date,
+  ): Promise<boolean>;
   touch(tenantId: string, id: string, at: Date): Promise<void>;
   close(tenantId: string, storeId: string, id: string, at: Date): Promise<void>;
 }
@@ -91,6 +103,12 @@ export interface ConversationEvents {
     messageId: string;
     body: string;
     createdAt: Date;
+  }): Promise<void>;
+  modeChanged(input: {
+    storeId: string;
+    conversationId: string;
+    mode: ConversationMode;
+    reason: string;
   }): Promise<void>;
 }
 

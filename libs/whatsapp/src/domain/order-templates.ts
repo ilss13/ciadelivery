@@ -80,6 +80,14 @@ export function orderStatusMessage(input: OrderMessageInput): string {
   return `${variables.customerName}, ${sentence(input.templateKey, variables)} Total ${variables.total}. Status: ${variables.status}. Acompanhe pelo link da loja.`;
 }
 
+export function confirmedOrderMessage(input: {
+  customerName: string;
+  orderNumber: number;
+  trackingPath: string;
+}): string {
+  return `${input.customerName.trim()}, seu pedido ${input.orderNumber} foi criado. Acompanhe em ${input.trackingPath}`;
+}
+
 function sentence(
   templateKey: OrderTemplateKey,
   variables: { orderNumber: number; storeName: string },

@@ -155,6 +155,92 @@ describe('ConversationsPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Conversa encerrada.');
     http.verify();
   });
+
+  it('shows the mode and passes a conversation to the bot', async () => {
+    const fixture = create();
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    flushList(http, [
+      {
+        id: conversationId,
+        maskedPhone: '*********1234',
+        contactName: 'Ana',
+        mode: 'HUMAN',
+        lastMessageAt: '2026-10-05T12:00:00.000Z',
+      },
+    ]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    click(fixture, 'Ana');
+    flushThread(http);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Modo: Humano');
+    click(fixture, 'Passar para o bot');
+    const changed = http.expectOne(
+      (candidate) =>
+        candidate.method === 'POST' &&
+        candidate.url.includes(`/conversations/${conversationId}/mode`),
+    );
+    expect(changed.request.body).toEqual({ mode: 'BOT' });
+    changed.flush({
+      id: conversationId,
+      contactPhone: fullPhone,
+      contactName: 'Ana',
+      mode: 'BOT',
+      linkedOrderId: null,
+      lastMessageAt: '2026-10-05T12:00:00.000Z',
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Modo: Bot');
+    http.verify();
+  });
+
+  it('links a conversation to its order detail and lets the store assume it', async () => {
+    const fixture = create();
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    flushList(http, [
+      {
+        id: conversationId,
+        maskedPhone: '*********1234',
+        contactName: 'Ana',
+        mode: 'BOT',
+        linkedOrderId: '88888888-8888-4888-8888-888888888888',
+        lastMessageAt: '2026-10-05T12:00:00.000Z',
+      },
+    ]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    click(fixture, 'Ana');
+    flushThread(http, '88888888-8888-4888-8888-888888888888', 'BOT');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const link = fixture.nativeElement.querySelector(
+      'a[href="/pedidos#order-88888888-8888-4888-8888-888888888888"]',
+    );
+    expect(link).not.toBeNull();
+    click(fixture, 'Assumir atendimento');
+    const changed = http.expectOne(
+      (candidate) =>
+        candidate.method === 'POST' &&
+        candidate.url.includes(`/conversations/${conversationId}/mode`),
+    );
+    expect(changed.request.body).toEqual({ mode: 'HUMAN' });
+    changed.flush({
+      id: conversationId,
+      contactPhone: fullPhone,
+      contactName: 'Ana',
+      mode: 'HUMAN',
+      linkedOrderId: '88888888-8888-4888-8888-888888888888',
+      lastMessageAt: '2026-10-05T12:00:00.000Z',
+    });
+    http.verify();
+  });
 });
 
 function create(notices = new Subject<ConversationNotice>()) {
@@ -183,7 +269,11 @@ function flushList(http: HttpTestingController, data: unknown[]): void {
     .flush({ data, meta: { page: 1, pageSize: 50, total: data.length, totalPages: 1 } });
 }
 
-function flushThread(http: HttpTestingController): void {
+function flushThread(
+  http: HttpTestingController,
+  linkedOrderId: string | null = null,
+  mode = 'HUMAN',
+): void {
   http
     .expectOne(
       (candidate) =>
@@ -194,8 +284,8 @@ function flushThread(http: HttpTestingController): void {
         id: conversationId,
         contactPhone: fullPhone,
         contactName: 'Ana',
-        mode: 'HUMAN',
-        linkedOrderId: null,
+        mode,
+        linkedOrderId,
         lastMessageAt: '2026-10-05T12:00:00.000Z',
       },
       data: [

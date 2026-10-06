@@ -11,6 +11,8 @@ export interface ConversationNotice {
   author: string;
   direction: string;
   createdAt: string;
+  mode?: string;
+  reason?: string;
 }
 
 export interface ConversationFeed {
@@ -39,11 +41,40 @@ export class SocketConversationFeed implements ConversationFeed {
           subscriber.next(notice);
         }
       });
+      socket.on('conversation.mode_changed', (payload: unknown) => {
+        const notice = readModeNotice(payload);
+        if (notice !== null) {
+          subscriber.next(notice);
+        }
+      });
       return () => {
         socket.close();
       };
     });
   }
+}
+
+function readModeNotice(payload: unknown): ConversationNotice | null {
+  if (typeof payload !== 'object' || payload === null) {
+    return null;
+  }
+  const record = payload as Record<string, unknown>;
+  const conversationId = text(record['conversationId']);
+  const mode = text(record['mode']);
+  if (conversationId === null || mode === null) {
+    return null;
+  }
+  const reason = text(record['reason']);
+  return {
+    conversationId,
+    messageId: '',
+    body: '',
+    author: 'SYSTEM',
+    direction: 'IN',
+    createdAt: new Date().toISOString(),
+    mode,
+    ...(reason === null ? {} : { reason }),
+  };
 }
 
 function readNotice(payload: unknown): ConversationNotice | null {
